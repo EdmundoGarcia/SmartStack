@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
-from .models import User
-from .extensions import db, mail
+from app.models import User
+from app.extensions import db, mail
 from flask_mail import Message
 from itsdangerous import URLSafeTimedSerializer
 import re
@@ -26,7 +26,7 @@ def login():
             flash('Invalid email or password', 'error')
             return redirect(url_for('auth.login'))
 
-    return render_template('login.html')
+    return render_template('auth/login.html')
 
 @auth.route('/logout')
 @login_required
@@ -37,7 +37,7 @@ def logout():
 @auth.route('/')
 @login_required
 def dashboard():
-    return render_template('dashboard.html', user=current_user)
+    return render_template('user/dashboard.html', user=current_user)
 
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
@@ -98,7 +98,7 @@ def register():
         flash("Registro exitoso. Revisa tu correo para activar tu cuenta.", "success")
         return redirect(url_for('auth.login'))
 
-    return render_template('register.html')
+    return render_template('auth/register.html')
 
 
 @auth.route('/activate/<token>')
@@ -134,7 +134,7 @@ def forgot_password():
             reset_link = url_for('auth.reset_password', token=token, _external=True)
 
             msg = Message(
-                subject="🔐 Recupera tu contraseña | Smart Stack",
+                subject="🔐 Recupera tu contraseña - Smart Stack",
                 recipients=[email],
                 html=f"""
                 <div style="font-family: Arial; padding: 20px;">
@@ -153,7 +153,7 @@ def forgot_password():
 
         return redirect(url_for('auth.forgot_password'))
 
-    return render_template('forgot_password.html')
+    return render_template('auth/forgot_password.html')
 
 
 @auth.route('/reset/<token>', methods=['GET', 'POST'])
@@ -197,4 +197,4 @@ def reset_password(token):
         flash("Tu contraseña ha sido actualizada. Ya puedes iniciar sesión.", "success")
         return redirect(url_for('auth.login'))
 
-    return render_template('reset_password.html', token=token)
+    return render_template('auth/reset_password.html', token=token)
