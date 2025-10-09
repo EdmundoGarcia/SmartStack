@@ -1,13 +1,13 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_user, logout_user, login_required, current_user
-from app.models import User
+from app.models import User, UserLibrary, Wishlist
 from app.extensions import db, mail
 from flask_mail import Message
 from itsdangerous import URLSafeTimedSerializer
 import re
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-from flask import current_app
+
 
 auth = Blueprint('auth', __name__)
 
@@ -74,10 +74,15 @@ def register():
         db.session.add(user)
         db.session.commit()
 
+        # ✅ Crear biblioteca y wishlist automáticamente
+        library = UserLibrary(user=user)
+        wishlist = Wishlist(user=user)
+        db.session.add_all([library, wishlist])
+        db.session.commit()
+
         # Token de activación
         s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
         token = s.dumps(email, salt='email-confirm')
-
         activation_link = url_for('auth.activate_account', token=token, _external=True)
 
         msg = Message(
@@ -99,6 +104,7 @@ def register():
         return redirect(url_for('auth.login'))
 
     return render_template('auth/register.html')
+
 
 
 @auth.route('/activate/<token>')

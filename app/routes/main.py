@@ -16,10 +16,6 @@ def dashboard():
 def scan():
     return render_template('user/scan.html')
 
-@bp.route('/library')
-@login_required
-def library():
-    return render_template('user/library.html')
 
 @bp.route('/recommendations')
 @login_required

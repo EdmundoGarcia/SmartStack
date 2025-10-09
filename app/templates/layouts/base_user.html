@@ -1,0 +1,8 @@
+{% extends "layouts/base.html" %}
+
+{% block content %}
+  <main class="container mx-auto mt-8">
+    {% include "components/alert.html" %}
+    {% block user_content %}{% endblock %}
+  </main>
+{% endblock %}

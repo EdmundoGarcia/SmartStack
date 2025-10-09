@@ -1,0 +1,12 @@
+<!-- templates/components/navbar.html -->
+<nav class="bg-primary text-white p-4 flex justify-between items-center">
+  <h1 class="text-xl font-bold">📚 Smart Stack</h1>
+  <div class="space-x-4">
+    <a href="{{ url_for('main.dashboard') }}" class="hover:underline">Inicio</a>
+    <a href="{{ url_for('main.scan') }}" class="hover:underline">Escanear</a>
+    <a href="{{ url_for('main.library') }}" class="hover:underline">Biblioteca</a>
+    <a href="{{ url_for('main.recommendations') }}" class="hover:underline">Recomendaciones</a>
+    <a href="{{ url_for('books.search_books') }}" class="hover:underline">Buscar libros</a>
+    <a href="{{ url_for('auth.logout') }}" class="hover:underline">Cerrar sesión</a>
+  </div>
+</nav>

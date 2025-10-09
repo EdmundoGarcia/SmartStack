@@ -43,6 +43,7 @@ class Book(db.Model):
     __tablename__ = 'books'
 
     id = db.Column(db.Integer, primary_key=True)
+    google_id = db.Column(db.String(50), unique=True, nullable=False)  # ✅ nuevo campo
     title = db.Column(db.String(255), nullable=False)
     author = db.Column(db.String(255))
     genre = db.Column(db.String(100))
@@ -53,7 +54,6 @@ class Book(db.Model):
     description = db.Column(db.Text)
     source = db.Column(db.String(50))
 
-    # Relaciones many-to-many
     wishlists = db.relationship('Wishlist', secondary=wishlist_books, back_populates='books')
     libraries = db.relationship('UserLibrary', secondary=library_books, back_populates='books')
 
