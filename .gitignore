@@ -26,3 +26,5 @@ build/
 
 # Environment variables
 .env
+
+flask_session_cache/

@@ -1,0 +1,72 @@
+{% extends "layouts/base_user.html" %}
+{% block title %}{{ info.title }}{% endblock %}
+
+{% block user_content %}
+<div class="max-w-4xl mx-auto bg-white rounded shadow p-6">
+  <div class="flex flex-col md:flex-row gap-6">
+    
+    <!-- Portada -->
+    <div class="flex-shrink-0 w-full md:w-1/3 flex items-center justify-center bg-gray-100 rounded">
+      {% if info.imageLinks and info.imageLinks.thumbnail %}
+        <img src="{{ info.imageLinks.thumbnail }}" alt="Portada" class="max-w-full max-h-96 object-contain">
+      {% else %}
+        <span class="text-gray-400 text-sm">Sin portada</span>
+      {% endif %}
+    </div>
+
+    <!-- Información -->
+    <div class="flex-grow">
+      <h2 class="text-2xl font-bold mb-2">{{ info.title }}</h2>
+      <p class="text-sm text-gray-600 mb-1">Autor(es): {{ info.authors|join(', ') }}</p>
+      <p class="text-sm text-gray-500 mb-1">Idioma: {{ info.language or 'N/A' }}</p>
+      <p class="text-sm text-gray-500 mb-1">Editorial: {{ info.publisher or 'N/A' }}</p>
+      <p class="text-sm text-gray-500 mb-1">Publicado: {{ info.publishedDate or 'N/A' }}</p>
+      <p class="text-sm text-gray-500 mb-1">Categorías: {{ info.categories|join(', ') if info.categories }}</p>
+
+      <!-- Descripción -->
+      {% if info.description %}
+        <div class="mt-4 text-sm text-gray-700 whitespace-pre-line">{{ info.description }}</div>
+      {% else %}
+        <p class="mt-4 text-sm text-gray-500 italic">Este libro no tiene descripción disponible.</p>
+      {% endif %}
+
+      <!-- Acciones -->
+      <div class="mt-6 flex gap-4">
+        
+        <!-- Biblioteca -->
+        <form method="POST" action="{{ url_for('books.add_to_library') }}">
+          <input type="hidden" name="book_id" value="{{ book.google_id if book else book['id'] }}">
+          <input type="hidden" name="title" value="{{ info.title }}">
+          <input type="hidden" name="authors" value="{{ info.authors|join(', ') }}">
+          <input type="hidden" name="language" value="{{ info.language }}">
+          <input type="hidden" name="thumbnail" value="{{ info.imageLinks.thumbnail if info.imageLinks }}">
+          <button type="submit" class="text-primary hover:text-blue-700">
+            {% if library_ids and (book.google_id if book.google_id else book['id']) in library_ids %}
+              <i class="fas fa-bookmark fa-lg"></i> Ya en biblioteca
+            {% else %}
+              <i class="far fa-bookmark fa-lg"></i> Agregar a biblioteca
+            {% endif %}
+          </button>
+        </form>
+
+        <!-- Wishlist -->
+        <form method="POST" action="{{ url_for('books.add_to_wishlist') }}">
+          <input type="hidden" name="book_id" value="{{ book.google_id if book else book['id'] }}">
+          <input type="hidden" name="title" value="{{ info.title }}">
+          <input type="hidden" name="authors" value="{{ info.authors|join(', ') }}">
+          <input type="hidden" name="language" value="{{ info.language }}">
+          <input type="hidden" name="thumbnail" value="{{ info.imageLinks.thumbnail if info.imageLinks }}">
+          <button type="submit" class="text-pink-600 hover:text-pink-800">
+            {% if wishlist_ids and (book.google_id if book.google_id else book['id']) in wishlist_ids %}
+              <i class="fas fa-heart fa-lg"></i> Ya en wishlist
+            {% else %}
+              <i class="far fa-heart fa-lg"></i> Agregar a wishlist
+            {% endif %}
+          </button>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

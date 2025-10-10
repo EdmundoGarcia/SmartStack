@@ -4,12 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}Dashboard{% endblock %}</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Alpine.js CDN (for interactivity) -->
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script
+      defer
+      src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
+    ></script>
 
     <!-- Optional: Tailwind config -->
     <script>
@@ -30,7 +37,11 @@
     <nav class="bg-primary text-white p-4 flex justify-between items-center">
       <h1 class="text-xl font-bold">Smart Stack</h1>
 
-      <form method="GET" action="{{ url_for('books.search_books') }}" class="flex-grow mx-8">
+      <form
+        method="GET"
+        action="{{ url_for('books.search_books') }}"
+        class="flex-grow mx-8"
+      >
         <input
           type="text"
           name="q"
@@ -40,18 +51,28 @@
       </form>
 
       <div class="flex items-center space-x-4">
-        <a href="{{ url_for('main.dashboard') }}" class="hover:underline">Inicio</a>
-        <a href="{{ url_for('main.scan') }}" class="hover:underline">Escanear</a>
-        <a href="{{ url_for('books.view_library') }}" class="hover:underline">Biblioteca</a>
-        <a href="{{ url_for('books.view_wishlist') }}" class="hover:underline">Wishlist</a>
-        <a href="{{ url_for('main.recommendations') }}" class="hover:underline">Recomendaciones</a>
-        <a href="{{ url_for('auth.logout') }}" class="hover:underline">Cerrar sesión</a>
+        <a href="{{ url_for('main.dashboard') }}" class="hover:underline"
+          >Inicio</a
+        >
+        <a href="{{ url_for('main.scan') }}" class="hover:underline"
+          >Escanear</a
+        >
+        <a href="{{ url_for('books.view_library') }}" class="hover:underline"
+          >Biblioteca</a
+        >
+        <a href="{{ url_for('books.view_wishlist') }}" class="hover:underline"
+          >Wishlist</a
+        >
+        <a href="{{ url_for('main.recommendations') }}" class="hover:underline"
+          >Recomendaciones</a
+        >
+        <a href="{{ url_for('auth.logout') }}" class="hover:underline"
+          >Cerrar sesión</a
+        >
       </div>
     </nav>
 
     <!-- Page Content -->
-    <main class="p-6">
-      {% block content %}{% endblock %}
-    </main>
+    <main class="p-6">{% block content %}{% endblock %}</main>
   </body>
 </html>

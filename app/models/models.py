@@ -43,16 +43,19 @@ class Book(db.Model):
     __tablename__ = 'books'
 
     id = db.Column(db.Integer, primary_key=True)
-    google_id = db.Column(db.String(50), unique=True, nullable=False)  # ✅ nuevo campo
+    google_id = db.Column(db.String(50), unique=True, nullable=False)
+
     title = db.Column(db.String(255), nullable=False)
     author = db.Column(db.String(255))
-    genre = db.Column(db.String(100))
+    categories = db.Column(db.String(255)) 
     language = db.Column(db.String(50))
     isbn = db.Column(db.String(20), unique=True)
-    cover_url = db.Column(db.String(255))
-    published_year = db.Column(db.Integer)
+    thumbnail = db.Column(db.String(512))
+    small_thumbnail = db.Column(db.String(512))
     description = db.Column(db.Text)
-    source = db.Column(db.String(50))
+    publisher = db.Column(db.String(255))           
+    published_date = db.Column(db.String(20))       
+             
 
     wishlists = db.relationship('Wishlist', secondary=wishlist_books, back_populates='books')
     libraries = db.relationship('UserLibrary', secondary=library_books, back_populates='books')

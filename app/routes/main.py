@@ -20,4 +20,4 @@ def scan():
 @bp.route('/recommendations')
 @login_required
 def recommendations():
-    return render_template('user/recommendations.html')
+    return render_template('books/recommendations.html')
