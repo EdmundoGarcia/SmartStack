@@ -1,4 +1,13 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
+from flask import (
+    Blueprint,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+    session,
+    current_app,
+)
 import requests
 from flask_login import login_required, current_user
 from app.models import Book, Wishlist, UserLibrary, User
@@ -6,7 +15,7 @@ from app.extensions import db
 from app.utils.books import get_or_create_book
 import math
 import re
-
+from sqlalchemy.orm import joinedload
 
 books_bp = Blueprint("books", __name__)
 
@@ -64,7 +73,20 @@ def search_books():
 
     if not query:
         flash("Ingresa una palabra clave para buscar libros.", "warning")
-        return render_template("books/search.html", results=[], total_items=0, page=page, max_results=RESULTS_PER_PAGE, total_pages=total_pages, order_by=order_by, lang_filters=lang_filters, author=author, publisher=publisher, wishlist_ids=[], library_ids=[])
+        return render_template(
+            "books/search.html",
+            results=[],
+            total_items=0,
+            page=page,
+            max_results=RESULTS_PER_PAGE,
+            total_pages=total_pages,
+            order_by=order_by,
+            lang_filters=lang_filters,
+            author=author,
+            publisher=publisher,
+            wishlist_ids=[],
+            library_ids=[],
+        )
 
     q = query
     if author:
@@ -72,14 +94,30 @@ def search_books():
     if publisher:
         q += f"+inpublisher:{publisher}"
 
-    params = {"q": q, "startIndex": 0, "maxResults": 40, "orderBy": order_by}
+    api_key = current_app.config["GOOGLE_BOOKS_API_KEY"]
+    params = {"q": q, "startIndex": 0, "maxResults": 40, "orderBy": order_by, "key": api_key}
 
     try:
         response = requests.get("https://www.googleapis.com/books/v1/volumes", params=params, timeout=5)
     except requests.RequestException as e:
-        flash("Lo sentimos, ocurrió un error de conexión con Google Books API.", "error")
+        flash(
+            "Lo sentimos, ocurrió un error de conexión con Google Books API.", "error"
+        )
         current_app.logger.error(f"Error de conexión: {e}")
-        return render_template("books/search.html", results=[], total_items=0, page=page, max_results=RESULTS_PER_PAGE, total_pages=total_pages, order_by=order_by, lang_filters=lang_filters, author=author, publisher=publisher, wishlist_ids=[], library_ids=[])
+        return render_template(
+            "books/search.html",
+            results=[],
+            total_items=0,
+            page=page,
+            max_results=RESULTS_PER_PAGE,
+            total_pages=total_pages,
+            order_by=order_by,
+            lang_filters=lang_filters,
+            author=author,
+            publisher=publisher,
+            wishlist_ids=[],
+            library_ids=[],
+        )
 
     raw_results = []
     if response.status_code == 200:
@@ -97,16 +135,47 @@ def search_books():
                 "description": item["volumeInfo"].get("description"),
                 "publisher": item["volumeInfo"].get("publisher"),
                 "publishedDate": item["volumeInfo"].get("publishedDate"),
-                "categories": item["volumeInfo"].get("categories", [])
+                "categories": item["volumeInfo"].get("categories", []),
             }
     elif response.status_code == 429:
-        flash("Has realizado demasiadas búsquedas en poco tiempo. Espera unos minutos antes de intentar nuevamente.", "warning")
+        flash(
+            "Has realizado demasiadas búsquedas en poco tiempo. Espera unos minutos antes de intentar nuevamente.",
+            "warning",
+        )
         current_app.logger.warning("Google Books API rate limit alcanzado (429)")
-        return render_template("books/search.html", results=[], total_items=0, page=page, max_results=RESULTS_PER_PAGE, total_pages=total_pages, order_by=order_by, lang_filters=lang_filters, author=author, publisher=publisher, wishlist_ids=[], library_ids=[])
+        return render_template(
+            "books/search.html",
+            results=[],
+            total_items=0,
+            page=page,
+            max_results=RESULTS_PER_PAGE,
+            total_pages=total_pages,
+            order_by=order_by,
+            lang_filters=lang_filters,
+            author=author,
+            publisher=publisher,
+            wishlist_ids=[],
+            library_ids=[],
+        )
     else:
-        flash("Lo sentimos, ocurrió un error de conexión con Google Books API.", "error")
+        flash(
+            "Lo sentimos, ocurrió un error de conexión con Google Books API.", "error"
+        )
         current_app.logger.warning(f"Google Books API error: {response.status_code}")
-        return render_template("books/search.html", results=[], total_items=0, page=page, max_results=RESULTS_PER_PAGE, total_pages=total_pages, order_by=order_by, lang_filters=lang_filters, author=author, publisher=publisher, wishlist_ids=[], library_ids=[])
+        return render_template(
+            "books/search.html",
+            results=[],
+            total_items=0,
+            page=page,
+            max_results=RESULTS_PER_PAGE,
+            total_pages=total_pages,
+            order_by=order_by,
+            lang_filters=lang_filters,
+            author=author,
+            publisher=publisher,
+            wishlist_ids=[],
+            library_ids=[],
+        )
 
     # Filtrar por idioma
     filtered = [item for item in raw_results if matches_language(item, lang_filters)]
@@ -119,8 +188,12 @@ def search_books():
     end = start + RESULTS_PER_PAGE
     results = filtered[start:end]
 
-    wishlist_ids = [book.google_id for book in getattr(current_user.wishlist, "books", [])]
-    library_ids = [book.google_id for book in getattr(current_user.library, "books", [])]
+    wishlist_ids = [
+        book.google_id for book in getattr(current_user.wishlist, "books", [])
+    ]
+    library_ids = [
+        book.google_id for book in getattr(current_user.library, "books", [])
+    ]
 
     return render_template(
         "books/search.html",
@@ -137,8 +210,6 @@ def search_books():
         wishlist_ids=wishlist_ids,
         library_ids=library_ids,
     )
-
-
 
 
 @books_bp.route("/add_to_library", methods=["POST"])
@@ -269,9 +340,6 @@ def view_wishlist():
     return render_template("books/wishlist.html", books=books)
 
 
-from sqlalchemy.orm import joinedload
-
-
 @books_bp.route("/library")
 @login_required
 def view_library():
@@ -300,7 +368,9 @@ def book_detail(id):
             "title": book.title,
             "authors": [book.author],
             "language": book.language,
-            "imageLinks": {"thumbnail": book.small_thumbnail} if book.small_thumbnail else {},
+            "imageLinks": (
+                {"thumbnail": book.small_thumbnail} if book.small_thumbnail else {}
+            ),
             "description": getattr(book, "description", None),
             "publisher": getattr(book, "publisher", None),
             "publishedDate": getattr(book, "published_date", None),
@@ -311,24 +381,39 @@ def book_detail(id):
             "title": cached_data.get("title"),
             "authors": cached_data.get("authors", []),
             "language": cached_data.get("language"),
-            "imageLinks": {"thumbnail": cached_data.get("thumbnail")} if cached_data.get("thumbnail") else {},
+            "imageLinks": (
+                {"thumbnail": cached_data.get("thumbnail")}
+                if cached_data.get("thumbnail")
+                else {}
+            ),
             "description": cached_data.get("description"),
             "publisher": cached_data.get("publisher"),
             "publishedDate": cached_data.get("publishedDate"),
-            "categories": cached_data.get("categories", [])
+            "categories": cached_data.get("categories", []),
         }
         book = None
     else:
         try:
-            response = requests.get(f"https://www.googleapis.com/books/v1/volumes/{id}", timeout=5)
+            api_key = current_app.config["GOOGLE_BOOKS_API_KEY"]
+            url = f"https://www.googleapis.com/books/v1/volumes/{id}"
+            params = {"key": api_key}
+            response = requests.get(url, params=params, timeout=5)
         except requests.RequestException as e:
-            flash("Lo sentimos, ocurrió un error de conexión con Google Books API.", "error")
+            flash(
+                "Lo sentimos, ocurrió un error de conexión con Google Books API.",
+                "error",
+            )
             current_app.logger.error(f"Error de conexión con Google Books: {e}")
             return redirect(url_for("books.search_books"))
 
         if response.status_code != 200:
-            flash("Lo sentimos, ocurrió un error de conexión con Google Books API.", "error")
-            current_app.logger.warning(f"Respuesta inválida para {id}: {response.status_code}")
+            flash(
+                "Lo sentimos, ocurrió un error de conexión con Google Books API.",
+                "error",
+            )
+            current_app.logger.warning(
+                f"Respuesta inválida para {id}: {response.status_code}"
+            )
             return redirect(url_for("books.search_books"))
 
         data = response.json()
@@ -337,11 +422,15 @@ def book_detail(id):
             "title": volume.get("title"),
             "authors": volume.get("authors", []),
             "language": volume.get("language"),
-            "imageLinks": {"thumbnail": volume.get("imageLinks", {}).get("thumbnail")} if volume.get("imageLinks", {}).get("thumbnail") else {},
+            "imageLinks": (
+                {"thumbnail": volume.get("imageLinks", {}).get("thumbnail")}
+                if volume.get("imageLinks", {}).get("thumbnail")
+                else {}
+            ),
             "description": volume.get("description"),
             "publisher": volume.get("publisher"),
             "publishedDate": volume.get("publishedDate"),
-            "categories": volume.get("categories", [])
+            "categories": volume.get("categories", []),
         }
         book = None
 
@@ -360,4 +449,3 @@ def book_detail(id):
         wishlist_ids=wishlist_ids,
         library_ids=library_ids,
     )
-
