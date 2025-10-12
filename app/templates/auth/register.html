@@ -1,146 +1,83 @@
-{% extends 'layouts/base_auth.html' %} {% block title %}Registro - Smart Stack{% endblock %} {% block
-content %}
+{% extends 'layouts/base_auth.html' %}
+{% block title %}Registro - Smart Stack{% endblock %}
+{% block content %}
 
-<h2 class="text-2xl font-bold mb-6 text-center text-primary">
-  📝 Crear Cuenta en Smart Stack
+<h2 class="text-2xl font-bold mb-6 text-center text-primary dark:text-blue-400">
+  Crear Cuenta en Smart Stack
 </h2>
 
-{% with messages = get_flashed_messages(with_categories=true) %} {% if messages
-%} {% for category, message in messages %}
-<div
-  class="w-full px-4 py-3 rounded-md text-sm font-medium text-center {% if category == 'success' %} bg-green-100 text-green-800 border border-green-300 {% elif category == 'error' %} bg-red-100 text-red-800 border border-red-300 {% else %} bg-gray-100 text-gray-800 border border-gray-300 {% endif %}"
->
-  {{ message }}
-</div>
-{% endfor %} {% endif %} {% endwith %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="space-y-2 mb-4">
+      {% for category, message in messages %}
+        <div class="w-full px-4 py-3 rounded-md text-sm font-medium text-center
+                    {% if category == 'success' %}
+                      bg-green-100 text-green-800 border border-green-300 dark:bg-green-900 dark:text-green-200 dark:border-green-700
+                    {% elif category == 'error' %}
+                      bg-red-100 text-red-800 border border-red-300 dark:bg-red-900 dark:text-red-200 dark:border-red-700
+                    {% else %}
+                      bg-gray-100 text-gray-800 border border-gray-300 dark:bg-slate-700 dark:text-white dark:border-slate-600
+                    {% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
 
 <form method="POST" action="{{ url_for('auth.register') }}" class="space-y-5">
   <div>
-    <label for="username" class="block text-sm font-medium text-gray-700"
-      >Nombre de usuario</label
-    >
-    <input
-      type="text"
-      name="username"
-      id="username"
-      required
-      class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary"
-    />
+    <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Nombre de usuario</label>
+    <input type="text" name="username" id="username" required
+           class="mt-1 block w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm bg-white dark:bg-slate-900 text-gray-800 dark:text-white focus:ring-primary focus:border-primary">
   </div>
 
   <div>
-    <label for="email" class="block text-sm font-medium text-gray-700"
-      >Correo electrónico</label
-    >
-    <input
-      type="email"
-      name="email"
-      id="email"
-      required
-      class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary"
-    />
+    <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Correo electrónico</label>
+    <input type="email" name="email" id="email" required
+           class="mt-1 block w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm bg-white dark:bg-slate-900 text-gray-800 dark:text-white focus:ring-primary focus:border-primary">
   </div>
 
   <div>
-    <label for="password" class="block text-sm font-medium text-gray-700"
-      >Contraseña</label
-    >
+    <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Contraseña</label>
     <div class="relative">
-      <input
-        type="password"
-        name="password"
-        id="password"
-        required
-        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary"
-      />
-      <button
-        type="button"
-        onclick="togglePassword('password', 'icon-password')"
-        class="absolute right-3 top-2 text-gray-500"
-      >
-        <svg
-          id="icon-password"
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <!-- Ojo abierto -->
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-          />
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-          />
+      <input type="password" name="password" id="password" required
+             class="mt-1 block w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm bg-white dark:bg-slate-900 text-gray-800 dark:text-white focus:ring-primary focus:border-primary">
+      <button type="button" onclick="togglePassword('password', 'icon-password')" class="absolute right-3 top-2 text-gray-500 dark:text-gray-300">
+        <svg id="icon-password" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
         </svg>
       </button>
     </div>
   </div>
 
   <div>
-    <label
-      for="confirm_password"
-      class="block text-sm font-medium text-gray-700"
-      >Confirmar contraseña</label
-    >
+    <label for="confirm_password" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Confirmar contraseña</label>
     <div class="relative">
-      <input
-        type="password"
-        name="confirm_password"
-        id="confirm_password"
-        required
-        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary"
-      />
-      <button
-        type="button"
-        onclick="togglePassword('confirm_password')"
-        class="absolute right-3 top-2 text-gray-500"
-      >
-        <svg
-          id="icon-confirm"
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-          />
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-          />
+      <input type="password" name="confirm_password" id="confirm_password" required
+             class="mt-1 block w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm bg-white dark:bg-slate-900 text-gray-800 dark:text-white focus:ring-primary focus:border-primary">
+      <button type="button" onclick="togglePassword('confirm_password', 'icon-confirm')" class="absolute right-3 top-2 text-gray-500 dark:text-gray-300">
+        <svg id="icon-confirm" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
         </svg>
       </button>
     </div>
   </div>
 
-  <button
-    type="submit"
-    class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition"
-  >
+  <button type="submit"
+          class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-blue-700 transition">
     Crear cuenta
   </button>
 </form>
 
 <div class="mt-6 text-center text-sm">
-  <a href="{{ url_for('auth.login') }}" class="text-blue-600 hover:underline"
-    >¿Ya tienes cuenta? Inicia sesión</a
-  >
+  <a href="{{ url_for('auth.login') }}" class="text-blue-600 dark:text-blue-400 hover:underline">¿Ya tienes cuenta? Inicia sesión</a>
 </div>
-
 
 {% endblock %}

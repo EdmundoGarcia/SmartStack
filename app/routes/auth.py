@@ -14,16 +14,22 @@ auth = Blueprint('auth', __name__)
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
+        identifier = request.form.get('email', '').strip()
+        password = request.form.get('password', '').strip()
 
-        user = User.query.filter_by(email=email).first()
+        user = User.query.filter(
+            (User.email == identifier) | (User.username == identifier)
+        ).first()
 
         if user and user.check_password(password):
+            if not user.is_active:
+                flash("Tu cuenta aún no está activada. Revisa tu correo.", "error")
+                return redirect(url_for('auth.login'))
+
             login_user(user)
             return redirect(url_for('auth.dashboard'))
         else:
-            flash('Invalid email or password', 'error')
+            flash("Usuario o contraseña incorrectos.", "error")
             return redirect(url_for('auth.login'))
 
     return render_template('auth/login.html')

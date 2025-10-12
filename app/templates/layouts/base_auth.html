@@ -1,52 +1,60 @@
 <!DOCTYPE html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Autenticación{% endblock %}</title>
+<html lang="es"
+      x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }"
+      :class="{ 'dark': darkMode }">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Autenticación{% endblock %}</title>
 
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Alpine.js (opcional para interactividad) -->
-    <script
-      defer
-      src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
-    ></script>
+  <!-- Alpine.js -->
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    <!-- Tailwind Config (opcional) -->
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              primary: "#1e40af",
-              accent: "#f59e0b",
-            },
+  <!-- Tailwind Config con modo oscuro activado por clase -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: "#1e40af",
+            accent: "#f59e0b",
           },
         },
-      };
+      },
+    };
 
-      function togglePassword(inputId, iconId) {
-        const input = document.getElementById(inputId);
-        const icon = document.getElementById(iconId);
+    function togglePassword(inputId, iconId) {
+      const input = document.getElementById(inputId);
+      const icon = document.getElementById(iconId);
 
-        const isHidden = input.type === "password";
-        input.type = isHidden ? "text" : "password";
+      const isHidden = input.type === "password";
+      input.type = isHidden ? "text" : "password";
 
-        icon.innerHTML = isHidden
-          ? `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-               d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.223-3.592M6.634 6.634A9.956 9.956 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.956 9.956 0 01-4.379 5.302M15 12a3 3 0 11-6 0 3 3 0 016 0zM3 3l18 18" />`
-          : `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-               d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-               d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />`;
-      }
-    </script>
-  </head>
-  <body class="bg-gray-100 min-h-screen flex items-center justify-center">
-    <main class="w-full max-w-md p-6 bg-white rounded shadow-md">
-      {% block content %}{% endblock %}
-    </main>
-  </body>
+      icon.innerHTML = isHidden
+        ? `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+             d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.223-3.592M6.634 6.634A9.956 9.956 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.956 9.956 0 01-4.379 5.302M15 12a3 3 0 11-6 0 3 3 0 016 0zM3 3l18 18" />`
+        : `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+             d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+             d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />`;
+    }
+  </script>
+</head>
+
+<body class="bg-gray-100 dark:bg-slate-900 text-gray-800 dark:text-white transition-colors duration-300 min-h-screen flex items-center justify-center">
+
+  <!-- Sticky botón modo oscuro -->
+  <button @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode)"
+          class="fixed bottom-4 right-4 z-50 bg-slate-200 dark:bg-slate-700 text-sm px-3 py-2 rounded-full shadow-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition">
+    <span x-text="darkMode ? '🌙 Oscuro' : '☀️ Claro'"></span>
+  </button>
+
+  <main class="w-full max-w-md p-6 bg-white dark:bg-slate-800 rounded shadow-md">
+    {% block content %}{% endblock %}
+  </main>
+</body>
 </html>

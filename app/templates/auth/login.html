@@ -1,44 +1,70 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Smart Stack - Iniciar sesión</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gradient-to-br from-slate-900 to-slate-700 min-h-screen flex items-center justify-center">
+{% extends "layouts/base_auth.html" %} {% block title %}Iniciar sesión{%
+endblock %} {% block content %}
+<h2 class="text-2xl font-bold text-center text-slate-800 dark:text-white mb-4">
+  Bienvenido a <span class="text-blue-600 dark:text-blue-400">Smart Stack</span>
+</h2>
 
-  <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-8 space-y-6">
-    <h2 class="text-2xl font-bold text-center text-slate-800">Bienvenido a <span class="text-blue-600">Smart Stack</span></h2>
+{% with messages = get_flashed_messages(with_categories=true) %} {% if messages
+%} {% for category, message in messages %}
+<div
+  class="text-sm px-4 py-3 rounded-md {% if category == 'success' %} bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 {% else %} bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 {% endif %}"
+>
+  {{ message }}
+</div>
+{% endfor %} {% endif %} {% endwith %}
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="text-sm px-4 py-3 rounded-md {{ 'bg-green-100 text-green-800' if category == 'success' else 'bg-red-100 text-red-800' }}">
-            {{ message }}
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-4">
-      <div>
-        <label for="email" class="block text-sm font-medium text-slate-700">Correo electrónico</label>
-        <input type="email" name="email" id="email" required class="mt-1 block w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-      </div>
-
-      <div>
-        <label for="password" class="block text-sm font-medium text-slate-700">Contraseña</label>
-        <input type="password" name="password" id="password" required class="mt-1 block w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-      </div>
-
-      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition">Entrar</button>
-    </form>
-
-    <div class="text-center text-sm text-slate-600">
-      <a href="{{ url_for('auth.forgot_password') }}" class="text-blue-500 hover:underline">¿Olvidaste tu contraseña?</a><br>
-      <a href="{{ url_for('auth.register') }}" class="text-blue-500 hover:underline">¿No tienes cuenta? Regístrate aquí</a>
-    </div>
+<form method="POST" action="{{ url_for('auth.login') }}" class="space-y-4">
+  <div>
+    <label
+      for="email"
+      class="block text-sm font-medium text-slate-700 dark:text-slate-200"
+    >
+      Usuario o correo electrónico
+    </label>
+    <input
+      type="text"
+      name="email"
+      id="email"
+      required
+      class="mt-1 block w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
   </div>
 
-</body>
-</html>
+  <div>
+    <label
+      for="password"
+      class="block text-sm font-medium text-slate-700 dark:text-slate-200"
+      >Contraseña</label
+    >
+    <input
+      type="password"
+      name="password"
+      id="password"
+      required
+      class="mt-1 block w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+  </div>
+
+  <button
+    type="submit"
+    class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition text-sm"
+  >
+    Entrar
+  </button>
+</form>
+
+<div
+  class="text-center text-sm text-slate-600 dark:text-slate-300 mt-4 space-y-1"
+>
+  <a
+    href="{{ url_for('auth.forgot_password') }}"
+    class="text-blue-500 dark:text-blue-400 hover:underline block"
+    >¿Olvidaste tu contraseña?</a
+  >
+  <a
+    href="{{ url_for('auth.register') }}"
+    class="text-blue-500 dark:text-blue-400 hover:underline block"
+    >¿No tienes cuenta? Regístrate aquí</a
+  >
+</div>
+{% endblock %}

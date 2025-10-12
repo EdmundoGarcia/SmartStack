@@ -1,6 +1,8 @@
 {% extends 'layouts/base.html' %}
+{% set show_global_theme_toggle = true %}
 {% block title %}Recommendations{% endblock %}
+
 {% block content %}
-<h2>⭐ Recomendaciones</h2>
-<p>Basado en tus libros, aquí aparecerán sugerencias.</p>
+<h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">⭐ Recomendaciones</h2>
+<p class="text-gray-600 dark:text-gray-300">Basado en tus libros, aquí aparecerán sugerencias.</p>
 {% endblock %}
