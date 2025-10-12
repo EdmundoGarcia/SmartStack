@@ -140,7 +140,7 @@ def forgot_password():
             reset_link = url_for('auth.reset_password', token=token, _external=True)
 
             msg = Message(
-                subject="🔐 Recupera tu contraseña - Smart Stack",
+                subject="Recupera tu contraseña - Smart Stack",
                 recipients=[email],
                 html=f"""
                 <div style="font-family: Arial; padding: 20px;">

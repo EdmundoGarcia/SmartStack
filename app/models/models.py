@@ -47,9 +47,9 @@ class Book(db.Model):
 
     title = db.Column(db.String(255), nullable=False)
     author = db.Column(db.String(255))
-    categories = db.Column(db.String(255)) 
+    categories = db.Column(db.Text)
     language = db.Column(db.String(50))
-    isbn = db.Column(db.String(20), unique=True)
+    isbn = db.Column(db.String(20), nullable=True)
     thumbnail = db.Column(db.String(512))
     small_thumbnail = db.Column(db.String(512))
     description = db.Column(db.Text)

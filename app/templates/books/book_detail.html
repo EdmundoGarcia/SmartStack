@@ -1,72 +1,119 @@
 {% extends "layouts/base_user.html" %}
 {% block title %}{{ info.title }}{% endblock %}
-
 {% block user_content %}
-<div class="max-w-4xl mx-auto bg-white rounded shadow p-6">
-  <div class="flex flex-col md:flex-row gap-6">
-    
-    <!-- Portada -->
-    <div class="flex-shrink-0 w-full md:w-1/3 flex items-center justify-center bg-gray-100 rounded">
-      {% if info.imageLinks and info.imageLinks.thumbnail %}
-        <img src="{{ info.imageLinks.thumbnail }}" alt="Portada" class="max-w-full max-h-96 object-contain">
-      {% else %}
-        <span class="text-gray-400 text-sm">Sin portada</span>
-      {% endif %}
-    </div>
+{% set book_id = book.google_id if book and book.google_id else request.view_args['id'] %}
+{% set t = info.title %}{% set a = info.authors|join(', ') %}{% set l = info.language %}{% set img = info.imageLinks.thumbnail if info.imageLinks else '' %}
+{% set is_lib = library_ids and book_id in library_ids %}{% set is_wish = wishlist_ids and book_id in wishlist_ids %}
+<div class="max-w-6xl mx-auto p-4 grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] gap-6">
+  <div class="flex flex-col items-center gap-4">
+    {% if book and book.thumbnail %}
+      <img src="{{ book.thumbnail }}" alt="Portada" class="max-h-80 object-contain rounded shadow"/>
+    {% elif img %}
+      <img src="{{ img }}" alt="Portada" class="max-h-80 object-contain rounded shadow"/>
+    {% else %}
+      <span class="text-gray-400 text-sm">Sin portada disponible</span>
+    {% endif %}
 
-    <!-- Información -->
-    <div class="flex-grow">
-      <h2 class="text-2xl font-bold mb-2">{{ info.title }}</h2>
-      <p class="text-sm text-gray-600 mb-1">Autor(es): {{ info.authors|join(', ') }}</p>
-      <p class="text-sm text-gray-500 mb-1">Idioma: {{ info.language or 'N/A' }}</p>
-      <p class="text-sm text-gray-500 mb-1">Editorial: {{ info.publisher or 'N/A' }}</p>
-      <p class="text-sm text-gray-500 mb-1">Publicado: {{ info.publishedDate or 'N/A' }}</p>
-      <p class="text-sm text-gray-500 mb-1">Categorías: {{ info.categories|join(', ') if info.categories }}</p>
-
-      <!-- Descripción -->
-      {% if info.description %}
-        <div class="mt-4 text-sm text-gray-700 whitespace-pre-line">{{ info.description }}</div>
-      {% else %}
-        <p class="mt-4 text-sm text-gray-500 italic">Este libro no tiene descripción disponible.</p>
-      {% endif %}
-
-      <!-- Acciones -->
-      <div class="mt-6 flex gap-4">
-        
-        <!-- Biblioteca -->
-        <form method="POST" action="{{ url_for('books.add_to_library') }}">
-          <input type="hidden" name="book_id" value="{{ book.google_id if book else book['id'] }}">
-          <input type="hidden" name="title" value="{{ info.title }}">
-          <input type="hidden" name="authors" value="{{ info.authors|join(', ') }}">
-          <input type="hidden" name="language" value="{{ info.language }}">
-          <input type="hidden" name="thumbnail" value="{{ info.imageLinks.thumbnail if info.imageLinks }}">
-          <button type="submit" class="text-primary hover:text-blue-700">
-            {% if library_ids and (book.google_id if book.google_id else book['id']) in library_ids %}
-              <i class="fas fa-bookmark fa-lg"></i> Ya en biblioteca
-            {% else %}
-              <i class="far fa-bookmark fa-lg"></i> Agregar a biblioteca
-            {% endif %}
-          </button>
-        </form>
-
-        <!-- Wishlist -->
-        <form method="POST" action="{{ url_for('books.add_to_wishlist') }}">
-          <input type="hidden" name="book_id" value="{{ book.google_id if book else book['id'] }}">
-          <input type="hidden" name="title" value="{{ info.title }}">
-          <input type="hidden" name="authors" value="{{ info.authors|join(', ') }}">
-          <input type="hidden" name="language" value="{{ info.language }}">
-          <input type="hidden" name="thumbnail" value="{{ info.imageLinks.thumbnail if info.imageLinks }}">
-          <button type="submit" class="text-pink-600 hover:text-pink-800">
-            {% if wishlist_ids and (book.google_id if book.google_id else book['id']) in wishlist_ids %}
-              <i class="fas fa-heart fa-lg"></i> Ya en wishlist
-            {% else %}
-              <i class="far fa-heart fa-lg"></i> Agregar a wishlist
-            {% endif %}
-          </button>
-        </form>
-
-      </div>
+    <div class="hidden md:flex flex-col gap-2 mt-4">
+      <form method="POST" action="{{ url_for('books.add_to_library') }}">
+        <input type="hidden" name="book_id" value="{{ book_id }}"/><input type="hidden" name="title" value="{{ t }}"/>
+        <input type="hidden" name="authors" value="{{ a }}"/><input type="hidden" name="language" value="{{ l }}"/>
+        <input type="hidden" name="thumbnail" value="{{ img }}"/>
+        <button type="submit" onclick="this.disabled=true; this.form.submit();" class="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm">
+          <i class="fas fa-bookmark fa-lg" {% if not is_lib %}style="display:none;"{% endif %}></i><i class="far fa-bookmark fa-lg" {% if is_lib %}style="display:none;"{% endif %}></i>
+          {% if is_lib %}Ya en biblioteca{% else %}Agregar a biblioteca{% endif %}
+        </button>
+      </form>
+      <form method="POST" action="{{ url_for('books.add_to_wishlist') }}" name="wishlistFormDesktop">
+        <input type="hidden" name="book_id" value="{{ book_id }}"/><input type="hidden" name="title" value="{{ t }}"/>
+        <input type="hidden" name="authors" value="{{ a }}"/><input type="hidden" name="language" value="{{ l }}"/>
+        <input type="hidden" name="thumbnail" value="{{ img }}"/>
+        <button type="submit" onclick="this.disabled=true; this.form.submit();" class="flex items-center gap-2 text-pink-600 hover:text-pink-800 text-sm">
+          <i class="fas fa-heart fa-lg" {% if not is_wish %}style="display:none;"{% endif %}></i><i class="far fa-heart fa-lg" {% if is_wish %}style="display:none;"{% endif %}></i>
+          {% if is_wish %}Ya en wishlist{% else %}Agregar a wishlist{% endif %}
+        </button>
+      </form>
     </div>
   </div>
+
+  <div>
+    <h1 class="text-2xl font-bold mb-2">{{ t }}</h1>
+    <p class="text-sm text-gray-600 mb-1">Autor(es): {% for author in info.authors %}<a href="{{ url_for('books.search_books') }}?q={{ author }}" class="text-blue-600 hover:underline">{{ author }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+    <p class="text-sm text-gray-500 mb-1">Idioma: {{ l or 'N/A' }}</p>
+    <p class="text-sm text-gray-500 mb-1">Editorial: {{ book.publisher or info.publisher or 'No disponible' }}</p>
+    <p class="text-sm text-gray-500 mb-1">Publicado: {{ info.publishedDate or 'N/A' }}</p>
+    {% if info.categories %}<p class="text-sm text-gray-500 mb-1">Categorías: {{ info.categories|join(', ') }}</p>{% endif %}
+    {% if info.description %}
+      <div class="mt-4 text-sm text-gray-700 whitespace-pre-line">{{ info.description }}</div>
+    {% else %}
+      <p class="mt-4 text-sm text-gray-500 italic">Este libro no tiene descripción disponible.</p>
+    {% endif %}
+  </div>
+
+  <div class="hidden md:flex flex-col gap-6">
+    {% if amazon_link or gandhi_link or porrua_link or gonvill_link or buscalibre_link %}
+      <div class="border rounded p-4 shadow">
+        <h2 class="text-lg font-semibold mb-3 text-center">Opciones de compra</h2>
+        <ul class="space-y-3">
+          {% if amazon_link %}<li class="flex items-center justify-between"><a href="{{ amazon_link }}" target="_blank"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg" alt="Amazon" class="h-5"/></a><a href="{{ amazon_link }}" target="_blank" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm">Comprar</a></li>{% endif %}
+          {% if gandhi_link %}<li class="flex items-center justify-between"><a href="{{ gandhi_link }}" target="_blank"><img src="https://gandhi.vtexassets.com/assets/vtex.file-manager-graphql/images/492933e0-21ad-415e-98a9-b8a0b5c5a43e___901e6fe0bc3418c01616e30789e62a5b.png" alt="Gandhi" class="h-5"/></a><a href="{{ gandhi_link }}" target="_blank" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm">Comprar</a></li>{% endif %}
+          {% if porrua_link %}<li class="flex items-center justify-between"><a href="{{ porrua_link }}" target="_blank"><img src="https://porrua.mx/media/logo/websites/1/LogoPORRUAp_1.png" alt="Porrúa" class="h-5"/></a><a href="{{ porrua_link }}" target="_blank" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm">Comprar</a></li>{% endif %}
+          {% if gonvill_link %}<li class="flex items-center justify-between"><a href="{{ gonvill_link }}" target="_blank"><img src="https://www.gonvill.com.mx/images/logo.png" alt="Gonvill" class="h-5"/></a><a href="{{ gonvill_link }}" target="_blank" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm">Comprar</a></li>{% endif %}
+          {% if buscalibre_link %}<li class="flex items-center justify-between"><a href="{{ buscalibre_link }}" target="_blank"><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe9i_MY-9LpIRnNyLoxX8R9omOcOp0DDfnOw&s" alt="Buscalibre" class="h-5 border border-gray-300 rounded bg-white"/></a><a href="{{ buscalibre_link }}" target="_blank" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm">Comprar</a></li>{% endif %}
+        </ul>
+      </div>
+    {% endif %}
+  </div>
 </div>
+
+<div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg flex justify-around items-center py-2 z-50">
+  <form method="POST" action="{{ url_for('books.add_to_library') }}"><input type="hidden" name="book_id" value="{{ book_id }}"/>
+    <input type="hidden" name="title" value="{{ t }}"/><input type="hidden" name="authors" value="{{ a }}"/>
+    <input type="hidden" name="language" value="{{ l }}"/><input type="hidden" name="thumbnail" value="{{ img }}"/>
+    <button type="submit" onclick="this.disabled=true; this.form.submit();" class="text-blue-600 hover:text-blue-800">
+      <i class="fas fa-bookmark fa-lg" {% if not is_lib %}style="display:none;"{% endif %}></i><i class="far fa-bookmark fa-lg" {% if is_lib %}style="display:none;"{% endif %}></i>
+    </button>
+  </form>
+  <form method="POST" action="{{ url_for('books.add_to_wishlist') }}" name="wishlistFormMobile"><input type="hidden" name="book_id" value="{{ book_id }}"/>
+    <input type="hidden" name="title" value="{{ t }}"/><input type="hidden" name="authors" value="{{ a }}"/>
+    <input type="hidden" name="language" value="{{ l }}"/><input type="hidden" name="thumbnail" value="{{ img }}"/>
+    <button type="submit" onclick="this.disabled=true; this.form.submit();" class="text-pink-600 hover:text-pink-800">
+      <i class="fas fa-heart fa-lg" {% if not is_wish %}style="display:none;"{% endif %}></i><i class="far fa-heart fa-lg" {% if is_wish %}style="display:none;"{% endif %}></i>
+    </button>
+  </form>
+  <button onclick="openModal()" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm">Ver opciones de compra</button>
+</div>
+
+{% if amazon_link or gandhi_link or porrua_link or gonvill_link or buscalibre_link %}
+<div id="purchaseModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-lg p-6 w-11/12 max-w-md shadow-lg overflow-y-auto max-h-[90vh] relative">
+    <div class="flex flex-col items-center mb-4">
+      {% if book and book.thumbnail or img %}<img src="{{ book.thumbnail if book and book.thumbnail else img }}" alt="Portada del libro" class="h-40 object-contain mb-2"/>{% endif %}
+      <h3 class="text-lg font-semibold text-gray-800 text-center">{{ t }}</h3>
+      <p class="text-sm text-gray-600 text-center">{{ a }}</p>
+    </div>
+    <button onclick="closeModal()" class="absolute top-2 right-3 text-gray-500 hover:text-gray-700 text-xl font-bold">&times;</button>
+    <ul class="space-y-3 mt-4">
+      {% if amazon_link %}<li class="flex items-center justify-between"><a href="{{ amazon_link }}" target="_blank"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg" alt="Amazon" class="h-5"/></a><a href="{{ amazon_link }}" target="_blank" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm">Comprar</a></li>{% endif %}
+      {% if gandhi_link %}<li class="flex items-center justify-between"><a href="{{ gandhi_link }}" target="_blank"><img src="https://gandhi.vtexassets.com/assets/vtex.file-manager-graphql/images/492933e0-21ad-415e-98a9-b8a0b5c5a43e___901e6fe0bc3418c01616e30789e62a5b.png" alt="Gandhi" class="h-5"/></a><a href="{{ gandhi_link }}" target="_blank" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm">Comprar</a></li>{% endif %}
+      {% if porrua_link %}<li class="flex items-center justify-between"><a href="{{ porrua_link }}" target="_blank"><img src="https://porrua.mx/media/logo/websites/1/LogoPORRUAp_1.png" alt="Porrúa" class="h-5"/></a><a href="{{ porrua_link }}" target="_blank" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm">Comprar</a></li>{% endif %}
+      {% if gonvill_link %}<li class="flex items-center justify-between"><a href="{{ gonvill_link }}" target="_blank"><img src="https://www.gonvill.com.mx/images/logo.png" alt="Gonvill" class="h-5"/></a><a href="{{ gonvill_link }}" target="_blank" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm">Comprar</a></li>{% endif %}
+      {% if buscalibre_link %}<li class="flex items-center justify-between"><a href="{{ buscalibre_link }}" target="_blank"><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe9i_MY-9LpIRnNyLoxX8R9omOcOp0DDfnOw&s" alt="Buscalibre" class="h-5 border border-gray-300 rounded bg-white"/></a><a href="{{ buscalibre_link }}" target="_blank" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm">Comprar</a></li>{% endif %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<script>
+function openModal() {
+  document.getElementById('purchaseModal').classList.remove('hidden');
+  document.body.classList.add('overflow-hidden');
+}
+function closeModal() {
+  document.getElementById('purchaseModal').classList.add('hidden');
+  document.body.classList.remove('overflow-hidden');
+}
+let submitted=false;
+document.querySelectorAll('form').forEach(f=>{f.addEventListener('submit',e=>{if(submitted){e.preventDefault();}else{submitted=true;}});});
+</script>
 {% endblock %}

@@ -35,4 +35,6 @@ def create_app():
     app.register_blueprint(auth)
     app.register_blueprint(books_bp)
 
+    
+    app.logger.setLevel("INFO")
     return app
