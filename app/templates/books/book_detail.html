@@ -18,6 +18,7 @@
   ('buscalibre', buscalibre_link, 'Buscalibre', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe9i_MY-9LpIRnNyLoxX8R9omOcOp0DDfnOw&s')
 ] %}
 {% set has_purchase_options = amazon_link or gandhi_link or porrua_link or gonvill_link or buscalibre_link %}
+
 {% macro action_form(action, is_active, icon_active, icon_inactive, text_active, text_inactive, color, is_desktop) %}
 <form method="POST" action="{{ url_for('books.add_to_' + action) }}">
   <input type="hidden" name="book_id" value="{{ book_id }}" />
@@ -25,6 +26,8 @@
   <input type="hidden" name="authors" value="{{ a }}" />
   <input type="hidden" name="language" value="{{ l }}" />
   <input type="hidden" name="thumbnail" value="{{ img }}" />
+  <input type="hidden" name="isbn" value="{{ info.isbn }}">
+  <input type="hidden" name="submitted" value="{{ range(1000000)|random }}">
   <button type="submit" onclick="this.disabled=true; this.form.submit();"
           class="flex items-center gap-2 text-{{ color }}-600 hover:text-{{ color }}-800 {% if is_desktop %}text-sm{% endif %}">
     <i class="{{ icon_active }} fa-lg" {% if not is_active %}style="display:none;"{% endif %}></i>
@@ -37,7 +40,7 @@
 {% endmacro %}
 
 <div x-data="{ showModal: false }">
-    <div class="max-w-6xl mx-auto p-4 grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] gap-6 bg-white dark:bg-slate-900 rounded shadow">
+  <div class="max-w-6xl mx-auto p-4 grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] gap-6 bg-white dark:bg-slate-900 rounded shadow">
     <div class="flex flex-col items-center gap-4">
       {% if book and book.thumbnail %}
         <img src="{{ book.thumbnail }}" alt="Portada" class="max-h-80 object-contain rounded shadow" />
@@ -93,8 +96,7 @@
       {% endif %}
     </div>
   </div>
-
-  <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t dark:border-slate-600 shadow-lg flex justify-between items-center px-4 py-2 z-50">
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t dark:border-slate-600 shadow-lg flex justify-between items-center px-4 py-2 z-50">
     <div class="flex gap-4 items-center">
       {{ action_form('library', is_lib, 'fas fa-bookmark', 'far fa-bookmark', '', '', 'blue', false) }}
       {{ action_form('wishlist', is_wish, 'fas fa-heart', 'far fa-heart', '', '', 'pink', false) }}
@@ -111,6 +113,7 @@
       </button>
     </div>
   </div>
+
   {% if has_purchase_options %}
   <div x-show="showModal" x-transition class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
     <div @click.away="showModal = false" class="bg-white dark:bg-slate-800 rounded-lg p-6 w-11/12 max-w-md shadow-lg overflow-y-auto max-h-[90vh] relative">

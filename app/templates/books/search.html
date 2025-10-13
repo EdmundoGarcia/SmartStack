@@ -46,14 +46,25 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
         {% for item in results %}
           {% set info = item.volumeInfo %}
+          {% set isbn = None %}
+          {% if info.industryIdentifiers %}
+            {% for identifier in info.industryIdentifiers %}
+              {% if identifier.type == "ISBN_13" or identifier.type == "ISBN_10" %}
+                {% if not isbn %}
+                  {% set isbn = identifier.identifier.replace('-', '') %}
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
           <div class="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden flex flex-col">
             <a href="{{ url_for('books.book_detail', id=item.id) }}" class="w-full h-64 bg-gray-100 dark:bg-slate-700 flex items-center justify-center hover:opacity-90 transition">
               {% if info.imageLinks and info.imageLinks.thumbnail %}
-              <img src="{{ info.imageLinks.thumbnail }}" alt="Portada"
-              class="max-h-full max-w-full object-contain">
-              {% else %}
-              <span class="text-gray-400 dark:text-gray-500 text-sm">Sin portada</span>
-              {% endif %}
+  <img src="{{ info.imageLinks.thumbnail }}" alt="Portada" class="...">
+{% else %}
+  <div class="flex items-center justify-center h-40 bg-gray-100 dark:bg-slate-700 text-gray-400 dark:text-gray-500 text-sm italic">
+    Sin portada disponible
+  </div>
+{% endif %}
             </a>
 
             <div class="p-4 flex flex-col justify-between flex-grow">
@@ -73,6 +84,8 @@
                   <input type="hidden" name="authors" value="{{ info.authors|join(', ') }}">
                   <input type="hidden" name="language" value="{{ info.language }}">
                   <input type="hidden" name="thumbnail" value="{{ info.imageLinks.thumbnail if info.imageLinks }}">
+                  <input type="hidden" name="isbn" value="{{ isbn }}">
+                  <input type="hidden" name="submitted" value="{{ range(1000000)|random }}">
                   <button type="submit" class="hover:scale-110 transition" title="Agregar a biblioteca">
                     {% if library_ids and item.id in library_ids %}
                       <i class="fas fa-bookmark fa-lg" title="Ya en biblioteca"></i>
@@ -89,6 +102,8 @@
                   <input type="hidden" name="authors" value="{{ info.authors|join(', ') }}">
                   <input type="hidden" name="language" value="{{ info.language }}">
                   <input type="hidden" name="thumbnail" value="{{ info.imageLinks.thumbnail if info.imageLinks }}">
+                  <input type="hidden" name="isbn" value="{{ isbn }}">
+                  <input type="hidden" name="submitted" value="{{ range(1000000)|random }}">
                   <button type="submit" class="hover:scale-110 transition" title="Agregar a wishlist">
                     {% if wishlist_ids and item.id in wishlist_ids %}
                       <i class="fas fa-heart fa-lg" title="Ya en wishlist"></i>
@@ -102,21 +117,20 @@
           </div>
         {% endfor %}
       </div>
-
-      <!-- Paginación -->
+            <!-- Paginación -->
       <div class="mt-6 flex justify-center space-x-2">
-  {% for p in range(1, total_pages + 1) %}
-    <a href="{{ url_for('books.search_books', q=query, page=p, order=order_by, author=author, publisher=publisher, lang=lang_filters) }}"
-       class="px-3 py-1 rounded border font-semibold
-              {% if p == page %}
-                bg-primary text-white
-              {% else %}
-                bg-white dark:bg-slate-700 text-primary dark:text-white hover:bg-gray-100 dark:hover:bg-slate-600
-              {% endif %}">
-      {{ p }}
-    </a>
-  {% endfor %}
-</div>
+        {% for p in range(1, total_pages + 1) %}
+          <a href="{{ url_for('books.search_books', q=query, page=p, order=order_by, author=author, publisher=publisher, lang=lang_filters) }}"
+             class="px-3 py-1 rounded border font-semibold
+                    {% if p == page %}
+                      bg-primary text-white
+                    {% else %}
+                      bg-white dark:bg-slate-700 text-primary dark:text-white hover:bg-gray-100 dark:hover:bg-slate-600
+                    {% endif %}">
+            {{ p }}
+          </a>
+        {% endfor %}
+      </div>
     {% else %}
       <p class="text-center text-gray-600 dark:text-gray-300 mt-10">No se encontraron resultados en los idiomas seleccionados.</p>
     {% endif %}

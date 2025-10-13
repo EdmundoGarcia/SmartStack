@@ -1,8 +1,106 @@
-{% extends 'layouts/base.html' %}
-{% set show_global_theme_toggle = true %}
-{% block title %}Recommendations{% endblock %}
+{% extends "layouts/base.html" %}
+{% block title %}Recomendaciones{% endblock %}
 
 {% block content %}
-<h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">⭐ Recomendaciones</h2>
-<p class="text-gray-600 dark:text-gray-300">Basado en tus libros, aquí aparecerán sugerencias.</p>
+<div class="container mx-auto px-4 py-6 text-center">
+  <h1 class="text-2xl font-semibold mb-6">📚 Recomendaciones personalizadas</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="space-y-2 mb-4">
+        {% for category, message in messages %}
+          <div class="px-4 py-2 rounded text-sm bg-{{ 'green' if category == 'success' else 'yellow' }}-100 text-{{ 'green' if category == 'success' else 'yellow' }}-800">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <button
+    id="fetch-btn"
+    class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4"
+  >
+    Mostrar recomendaciones
+  </button>
+
+  <div id="loader" class="hidden text-gray-500 dark:text-gray-300 text-sm mb-4">
+    Cargando recomendaciones...
+  </div>
+
+  <div id="recommendations" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
+
+
+  <script>
+  function renderBookCard(book) {
+    return `
+      <div class="bg-white dark:bg-gray-900 shadow rounded p-4 transition hover:shadow-lg">
+        <a href="/book/${book.id}" class="block hover:opacity-90 transition">
+          ${book.thumbnail ? `
+            <img src="${book.thumbnail}" alt="${book.title}" class="w-full h-48 object-cover mb-3 rounded">
+          ` : `
+            <div class="w-full h-48 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-sm text-gray-400 dark:text-gray-500 italic mb-3 rounded">
+              Sin portada disponible
+            </div>
+          `}
+          <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">${book.title}</h2>
+          <p class="text-sm text-gray-600 dark:text-gray-300">${book.author}</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Idioma: ${book.language} &nbsp;|&nbsp; Similitud: ${book.similarity}
+          </p>
+        </a>
+      </div>
+    `;
+  }
+
+  function renderRecommendations(data) {
+    const container = document.getElementById("recommendations");
+    container.innerHTML = "";
+
+    if (data.books && data.books.length > 0) {
+      const threshold = 0.3;
+      const highSimilarityBooks = data.books.filter(book => book.similarity >= threshold);
+      const lowSimilarity = highSimilarityBooks.length === 0;
+      const booksToShow = lowSimilarity ? data.books : highSimilarityBooks;
+
+      if (lowSimilarity) {
+        container.innerHTML += `
+          <div class="col-span-full text-sm text-gray-600 dark:text-gray-300 mb-4">
+            Mostrando libros con similitud parcial a tu perfil. Puedes afinar las recomendaciones agregando más libros o explorando nuevos géneros.
+          </div>
+        `;
+      }
+
+      booksToShow.forEach(book => container.innerHTML += renderBookCard(book));
+    } else {
+      container.innerHTML = `
+        <div class="bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 p-4 rounded text-sm col-span-full">
+          No se encontraron recomendaciones relevantes en este momento. Intenta más tarde o agrega más libros a tu biblioteca.
+        </div>
+      `;
+    }
+  }
+
+  function fetchRecommendations() {
+    document.getElementById("loader").classList.remove("hidden");
+    fetch("/recommendations/fetch")
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("loader").classList.add("hidden");
+        renderRecommendations(data);
+      })
+      .catch(err => {
+        document.getElementById("loader").classList.add("hidden");
+        document.getElementById("recommendations").innerHTML = `
+          <div class="bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 p-4 rounded text-sm col-span-full">
+            Ocurrió un error al obtener recomendaciones. Intenta nuevamente.
+          </div>
+        `;
+        console.error("Error al obtener recomendaciones:", err);
+      });
+  }
+
+  document.getElementById("fetch-btn").addEventListener("click", fetchRecommendations);
+</script>
+</div>
 {% endblock %}
