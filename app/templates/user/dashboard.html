@@ -1,8 +1,22 @@
 {% extends 'layouts/base.html' %}
 {% set show_global_theme_toggle = true %}
-{% block title %}Inicio - SmartStack{% endblock %}
-
 {% block content %}
-  <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">Bienvenido, {{ current_user.username }}!</h1>
-  <p class="text-gray-600 dark:text-gray-300">Selecciona una opción del menú lateral para comenzar.</p>
+  <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+    Bienvenido, {{ current_user.username }}!
+  </h1>
+  <p class="text-gray-600 dark:text-gray-300 mb-6">
+    Selecciona una opción del menú de navegación para comenzar.
+  </p>
+
+  {% if current_user.library.books or current_user.wishlist.books %}
+  <div class="bg-blue-50 dark:bg-slate-800 text-blue-900 dark:text-blue-100 p-4 rounded shadow text-sm md:text-base">
+    <p>📚 Tienes <strong>{{ current_user.library.books|length }}</strong> libros en tu biblioteca y <strong>{{ current_user.wishlist.books|length }}</strong> en tu wishlist.</p>
+    <p class="mt-2">Organiza tu biblioteca. Descubre tu próxima lectura.</p>
+  </div>
+  {% else %}
+  <div class="bg-yellow-50 dark:bg-slate-700 text-yellow-900 dark:text-yellow-100 p-4 rounded shadow text-sm md:text-base">
+    <p>📖 Aún no has agregado libros a tu biblioteca ni a tu wishlist.</p>
+    <p class="mt-2">¿Por qué no comienzas escaneando tu primer ISBN?</p>
+  </div>
+  {% endif %}
 {% endblock %}

@@ -58,8 +58,24 @@ def matches_language(item, filters):
 @books_bp.route("/search")
 @login_required
 def search_books():
+    import re
+
     def is_incomplete(volume):
         return not volume.get("title") or not volume.get("authors")
+
+    def get_book_id_by_isbn(isbn):
+        api_key = current_app.config["GOOGLE_BOOKS_API_KEY"]
+        params = {
+            "q": f"isbn:{isbn}",
+            "maxResults": 1,
+            "key": api_key
+        }
+        try:
+            response = requests.get("https://www.googleapis.com/books/v1/volumes", params=params, timeout=5)
+            items = response.json().get("items", []) if response.status_code == 200 else []
+            return items[0]["id"] if items else None
+        except requests.RequestException:
+            return None
 
     query = request.args.get("q", "").strip()
     lang_filters = request.args.getlist("lang") or ["es", "en"]
@@ -73,14 +89,26 @@ def search_books():
     total_items = 0
     total_pages = 0
 
+    # Cache cleanup
     if len(session.get("search_cache", {})) > 200:
         session["search_cache"].clear()
 
-    if not query:
-        flash("Ingresa una palabra clave para buscar libros.", "warning")
+    # Si no hay query ni autor ni editorial, muestra advertencia
+    if not query and not author and not publisher:
+        flash("Ingresa una palabra clave, autor o editorial para buscar libros.", "warning")
         return render_template("books/search.html", results=[], page=page, total_pages=0)
 
-    q = query
+    # Si el query es un ISBN válido, redirige al detalle
+    if re.fullmatch(r"97[89]\d{10}", query):
+        book_id = get_book_id_by_isbn(query)
+        if book_id:
+            return redirect(url_for("books.book_detail", id=book_id))
+        else:
+            flash(f"No se encontró ningún libro con ISBN {query}.", "warning")
+            return render_template("books/search.html", results=[], page=page, total_pages=0)
+
+    # Construye query enriquecida
+    q = query or ""
     if author:
         q += f"+inauthor:{author}"
     if publisher:
@@ -102,6 +130,14 @@ def search_books():
     except requests.RequestException:
         flash("Error de conexión con Google Books API.", "error")
         return render_template("books/search.html", results=[], page=page, total_pages=0)
+
+    # Filtrado manual por autor exacto
+    if author:
+        author_lower = author.lower()
+        raw_results = [
+            item for item in raw_results
+            if author_lower in [a.lower() for a in item.get("volumeInfo", {}).get("authors", [])]
+        ]
 
     filtered = []
     for item in raw_results:
@@ -134,19 +170,22 @@ def search_books():
     library_ids = [book.google_id for book in getattr(current_user.library, "books", [])]
 
     return render_template(
-    "books/search.html",
-    results=results,
-    page=page,
-    total_pages=total_pages,
-    query=query,
-    lang_filters=lang_filters,
-    author=author,
-    publisher=publisher,
-    order_by=order_by,
-    wishlist_ids=wishlist_ids,
-    library_ids=library_ids,
-    total_items=total_items
-)
+        "books/search.html",
+        results=results,
+        page=page,
+        total_pages=total_pages,
+        query=query,
+        lang_filters=lang_filters,
+        author=author,
+        publisher=publisher,
+        order_by=order_by,
+        wishlist_ids=wishlist_ids,
+        library_ids=library_ids,
+        total_items=total_items
+    )
+
+
+
 
 
 @books_bp.route("/add_to_library", methods=["POST"])
@@ -178,6 +217,7 @@ def add_to_library():
         db.session.add(UserLibrary(user=current_user))
         db.session.commit()
 
+    # Check if the book is already in the library or wishlist
     was_in_library = any(b.id == book.id for b in current_user.library.books)
     was_in_wishlist = current_user.wishlist and any(b.id == book.id for b in current_user.wishlist.books)
 
@@ -413,7 +453,9 @@ def book_detail(id):
 @books_bp.route("/recommendations")
 @login_required
 def recommendations():
+    # Get all books from the user's library
     user_books = Book.query.join(UserLibrary.books).filter(UserLibrary.user_id == current_user.id).all()
+    # Check for existing recommendations in the session cache
     recommendation_cache = session.get("recommendation_cache", [])
 
     if len(user_books) < 3 and not recommendation_cache:
@@ -438,7 +480,7 @@ def fetch_recommendations():
     cache = session.get("recommendation_cache", [])
     rotation_index = session.get("rotation_index", 0)
 
-    # Detectar caché agotada
+    
     if last_hash == profile_hash and cache and last_fetched:
         age = datetime.utcnow() - datetime.fromisoformat(last_fetched)
         if age < timedelta(hours=48):
@@ -451,10 +493,10 @@ def fetch_recommendations():
                 current_app.logger.info(f"[RECOMMEND] Usuario {current_user.id} recibió lote {rotation_index} desde caché.")
                 return {"books": chunk}
 
-    # Regenerar si el perfil cambió o no hay caché útil
+    
     shown_ids = session.get("shown_recommendations", set())
     if last_hash != profile_hash:
-        shown_ids = set()  # Reiniciar si el perfil cambió
+        shown_ids = set() 
 
     api_key = current_app.config.get("GOOGLE_BOOKS_API_KEY")
     recommendations = fetch_google_books(
@@ -477,3 +519,32 @@ def fetch_recommendations():
 
     current_app.logger.info(f"[RECOMMEND] Sin resultados útiles para perfil {profile_hash}.")
     return {"books": []}
+
+@books_bp.route("/search/isbn-scan")
+@login_required
+def isbn_scan():
+    return render_template("books/isbn_scan.html")
+
+@books_bp.route("/isbn/<isbn>")
+@login_required
+def resolve_isbn(isbn):
+    api_key = current_app.config["GOOGLE_BOOKS_API_KEY"]
+    params = {
+        "q": f"isbn:{isbn}",
+        "maxResults": 1,
+        "key": api_key
+    }
+
+    try:
+        response = requests.get("https://www.googleapis.com/books/v1/volumes", params=params, timeout=5)
+        items = response.json().get("items", []) if response.status_code == 200 else []
+    except requests.RequestException:
+        flash("No se pudo buscar el ISBN.", "error")
+        return redirect(url_for("books.search_books"))
+
+    if not items:
+        flash("No se encontró ningún libro con ese ISBN.", "warning")
+        return redirect(url_for("books.search_books"))
+
+    google_id = items[0]["id"]
+    return redirect(url_for("books.book_detail", id=google_id))

@@ -1,160 +1,259 @@
-{% extends "layouts/base_user.html" %}
-{% set show_global_theme_toggle = true %}
-{% set sticky_has_theme_toggle = true %}
-{% block title %}{{ info.title }} - SmartStack {% endblock %}
-{% block user_content %}
-{% set book_id = book.google_id if book and book.google_id else request.view_args['id'] %}
-{% set t = info.title %}
-{% set a = info.authors|join(', ') %}
-{% set l = info.language %}
-{% set img = info.imageLinks.thumbnail if info.imageLinks else '' %}
-{% set is_lib = library_ids and book_id in library_ids %}
-{% set is_wish = wishlist_ids and book_id in wishlist_ids %}
-{% set purchase_options = [
-  ('amazon', amazon_link, 'Amazon', 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg'),
-  ('gandhi', gandhi_link, 'Gandhi', 'https://gandhi.vtexassets.com/assets/vtex.file-manager-graphql/images/492933e0-21ad-415e-98a9-b8a0b5c5a43e___901e6fe0bc3418c01616e30789e62a5b.png'),
-  ('porrua', porrua_link, 'Porrúa', 'https://porrua.mx/media/logo/websites/1/LogoPORRUAp_1.png'),
-  ('gonvill', gonvill_link, 'Gonvill', 'https://www.gonvill.com.mx/images/logo.png'),
-  ('buscalibre', buscalibre_link, 'Buscalibre', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe9i_MY-9LpIRnNyLoxX8R9omOcOp0DDfnOw&s')
-] %}
-{% set has_purchase_options = amazon_link or gandhi_link or porrua_link or gonvill_link or buscalibre_link %}
-
-{% macro action_form(action, is_active, icon_active, icon_inactive, text_active, text_inactive, color, is_desktop) %}
+{% extends "layouts/base_user.html" %} {% set show_global_theme_toggle = true %}
+{% set sticky_has_theme_toggle = true %} {% block title %}{{ info.title }} -
+SmartStack {% endblock %} {% block user_content %} {% set book_id =
+book.google_id if book and book.google_id else request.view_args['id'] %} {% set
+t = info.title %} {% set a = info.authors|join(', ') %} {% set l = info.language
+%} {% set img = info.imageLinks.thumbnail if info.imageLinks else '' %} {% set
+is_lib = library_ids and book_id in library_ids %} {% set is_wish = wishlist_ids
+and book_id in wishlist_ids %} {% set purchase_options = [ ('amazon',
+amazon_link, 'Amazon',
+'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg'),
+('gandhi', gandhi_link, 'Gandhi',
+'https://gandhi.vtexassets.com/assets/vtex.file-manager-graphql/images/492933e0-21ad-415e-98a9-b8a0b5c5a43e___901e6fe0bc3418c01616e30789e62a5b.png'),
+('porrua', porrua_link, 'Porrúa',
+'https://porrua.mx/media/logo/websites/1/LogoPORRUAp_1.png'), ('gonvill',
+gonvill_link, 'Gonvill', 'https://www.gonvill.com.mx/images/logo.png'),
+('buscalibre', buscalibre_link, 'Buscalibre',
+'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe9i_MY-9LpIRnNyLoxX8R9omOcOp0DDfnOw&s')
+] %} {% set has_purchase_options = amazon_link or gandhi_link or porrua_link or
+gonvill_link or buscalibre_link %} {% macro action_form(action, is_active,
+icon_active, icon_inactive, text_active, text_inactive, color, is_desktop) %}
 <form method="POST" action="{{ url_for('books.add_to_' + action) }}">
   <input type="hidden" name="book_id" value="{{ book_id }}" />
   <input type="hidden" name="title" value="{{ t }}" />
   <input type="hidden" name="authors" value="{{ a }}" />
   <input type="hidden" name="language" value="{{ l }}" />
   <input type="hidden" name="thumbnail" value="{{ img }}" />
-  <input type="hidden" name="isbn" value="{{ info.isbn }}">
-  <input type="hidden" name="submitted" value="{{ range(1000000)|random }}">
-  <button type="submit" onclick="this.disabled=true; this.form.submit();"
-          class="flex items-center gap-2 text-{{ color }}-600 hover:text-{{ color }}-800 {% if is_desktop %}text-sm{% endif %}">
-    <i class="{{ icon_active }} fa-lg" {% if not is_active %}style="display:none;"{% endif %}></i>
-    <i class="{{ icon_inactive }} fa-lg" {% if is_active %}style="display:none;"{% endif %}></i>
-    {% if is_desktop %}
-      {% if is_active %}{{ text_active }}{% else %}{{ text_inactive }}{% endif %}
-    {% endif %}
+  <input type="hidden" name="isbn" value="{{ info.isbn }}" />
+  <input type="hidden" name="submitted" value="{{ range(1000000)|random }}" />
+  <button
+    type="submit"
+    onclick="this.disabled=true; this.form.submit();"
+    class="flex items-center gap-2 text-{{ color }}-600 hover:text-{{ color }}-800 {% if is_desktop %}text-sm{% endif %}"
+  >
+    <i
+      class="{{ icon_active }} fa-lg"
+      {%
+      if
+      not
+      is_active
+      %}style="display:none;"
+      {%
+      endif
+      %}
+    ></i>
+    <i
+      class="{{ icon_inactive }} fa-lg"
+      {%
+      if
+      is_active
+      %}style="display:none;"
+      {%
+      endif
+      %}
+    ></i>
+    {% if is_desktop %} {% if is_active %}{{ text_active }}{% else %}{{
+    text_inactive }}{% endif %} {% endif %}
   </button>
 </form>
 {% endmacro %}
 
 <div x-data="{ showModal: false }">
-  <div class="max-w-6xl mx-auto p-4 grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] gap-6 bg-white dark:bg-slate-900 rounded shadow">
+  <div
+    class="max-w-6xl mx-auto p-4 grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] gap-6 bg-white dark:bg-slate-900 rounded shadow"
+  >
     <div class="flex flex-col items-center gap-4">
       {% if book and book.thumbnail %}
-        <img src="{{ book.thumbnail }}" alt="Portada" class="max-h-80 object-contain rounded shadow" />
+      <img
+        src="{{ book.thumbnail }}"
+        alt="Portada"
+        class="max-h-80 object-contain rounded shadow"
+      />
       {% elif img %}
-        <img src="{{ img }}" alt="Portada" class="max-h-80 object-contain rounded shadow" />
+      <img
+        src="{{ img }}"
+        alt="Portada"
+        class="max-h-80 object-contain rounded shadow"
+      />
       {% else %}
-        <span class="text-gray-400 dark:text-gray-500 text-sm">Sin portada disponible</span>
+      <span class="text-gray-400 dark:text-gray-500 text-sm"
+        >Sin portada disponible</span
+      >
       {% endif %}
 
       <div class="hidden md:flex flex-col gap-2 mt-4">
-        {{ action_form('library', is_lib, 'fas fa-bookmark', 'far fa-bookmark', 'Ya en biblioteca', 'Agregar a biblioteca', 'blue', true) }}
-        {{ action_form('wishlist', is_wish, 'fas fa-heart', 'far fa-heart', 'Ya en wishlist', 'Agregar a wishlist', 'pink', true) }}
+        {{ action_form('library', is_lib, 'fas fa-bookmark', 'far fa-bookmark',
+        'Ya en biblioteca', 'Agregar a biblioteca', 'blue', true) }} {{
+        action_form('wishlist', is_wish, 'fas fa-heart', 'far fa-heart', 'Ya en
+        wishlist', 'Agregar a wishlist', 'pink', true) }}
       </div>
     </div>
 
     <div>
-      <h1 class="text-2xl font-bold mb-2 text-gray-800 dark:text-white">{{ t }}</h1>
+      <h1 class="text-2xl font-bold mb-2 text-gray-800 dark:text-white">
+        {{ t }}
+      </h1>
       <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">
-        Autor(es):
-        {% for author in info.authors %}
-          <a href="{{ url_for('books.search_books') }}?q={{ author }}" class="text-blue-600 dark:text-blue-400 hover:underline">{{ author }}</a>{% if not loop.last %}, {% endif %}
-        {% endfor %}
+        Autor(es): {% for author in info.authors %}
+        <a
+          href="{{ url_for('books.search_books') }}?author={{ author | urlencode }}"
+          class="text-blue-600 dark:text-blue-400 hover:underline"
+        >
+          {{ author }}
+        </a>
+        {% if not loop.last %}, {% endif %} {% endfor %}
       </p>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Idioma: {{ l or 'N/A' }}</p>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Editorial: {{ book.publisher or info.publisher or 'No disponible' }}</p>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Publicado: {{ info.publishedDate or 'N/A' }}</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">
+        Idioma: {{ l or 'N/A' }}
+      </p>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">
+        Editorial: {{ book.publisher or info.publisher or 'No disponible' }}
+      </p>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">
+        Publicado: {{ info.publishedDate or 'N/A' }}
+      </p>
       {% if info.categories %}
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Categorías: {{ info.categories|join(', ') }}</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">
+        Categorías: {{ info.categories|join(', ') }}
+      </p>
       {% endif %}
-      <div class="mt-4 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-line">
-        {{ info.description or '<p class="mt-4 text-sm text-gray-500 italic">Este libro no tiene descripción disponible.</p>' }}
+      <div
+        class="mt-4 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-line"
+      >
+        {{ info.description or '
+        <p class="mt-4 text-sm text-gray-500 italic">
+          Este libro no tiene descripción disponible.
+        </p>
+        ' }}
       </div>
     </div>
 
     <div class="hidden md:flex flex-col gap-6">
       {% if has_purchase_options %}
       <div class="border rounded p-4 shadow bg-white dark:bg-slate-800">
-        <h2 class="text-lg font-semibold mb-3 text-center text-gray-800 dark:text-white">Opciones de compra</h2>
+        <h2
+          class="text-lg font-semibold mb-3 text-center text-gray-800 dark:text-white"
+        >
+          Opciones de compra
+        </h2>
         <ul class="space-y-3">
           {% for _, link, alt, src in purchase_options if link %}
-            <li class="flex items-center justify-between">
-              <a href="{{ link }}" target="_blank">
-                <img src="{{ src }}" alt="{{ alt }}" class="h-5 {% if alt == 'Buscalibre' %}border border-gray-300 rounded bg-white{% endif %}" />
-              </a>
-              <a href="{{ link }}" target="_blank"
-                 class="bg-green-600 dark:bg-green-500 text-white px-3 py-1 rounded hover:bg-green-700 dark:hover:bg-green-600 text-sm">
-                Comprar
-              </a>
-            </li>
+          <li class="flex items-center justify-between">
+            <a href="{{ link }}" target="_blank">
+              <img
+                src="{{ src }}"
+                alt="{{ alt }}"
+                class="h-5 {% if alt == 'Buscalibre' %}border border-gray-300 rounded bg-white{% endif %}"
+              />
+            </a>
+            <a
+              href="{{ link }}"
+              target="_blank"
+              class="bg-green-600 dark:bg-green-500 text-white px-3 py-1 rounded hover:bg-green-700 dark:hover:bg-green-600 text-sm"
+            >
+              Comprar
+            </a>
+          </li>
           {% endfor %}
         </ul>
       </div>
       {% endif %}
     </div>
   </div>
-    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t dark:border-slate-600 shadow-lg flex justify-between items-center px-4 py-2 z-50">
+  <div
+    class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t dark:border-slate-600 shadow-lg flex justify-between items-center px-4 py-2 z-50"
+  >
     <div class="flex gap-4 items-center">
-      {{ action_form('library', is_lib, 'fas fa-bookmark', 'far fa-bookmark', '', '', 'blue', false) }}
-      {{ action_form('wishlist', is_wish, 'fas fa-heart', 'far fa-heart', '', '', 'pink', false) }}
+      {{ action_form('library', is_lib, 'fas fa-bookmark', 'far fa-bookmark',
+      '', '', 'blue', false) }} {{ action_form('wishlist', is_wish, 'fas
+      fa-heart', 'far fa-heart', '', '', 'pink', false) }}
     </div>
     <div class="flex gap-2 items-center">
       {% if has_purchase_options %}
-      <button @click="showModal = true" class="bg-green-600 dark:bg-green-500 text-white px-3 py-1 rounded hover:bg-green-700 dark:hover:bg-green-600 text-sm">
+      <button
+        @click="showModal = true"
+        class="bg-green-600 dark:bg-green-500 text-white px-3 py-1 rounded hover:bg-green-700 dark:hover:bg-green-600 text-sm"
+      >
         Ver opciones de compra
       </button>
       {% endif %}
-      <button @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode)"
-              class="bg-slate-200 dark:bg-slate-700 text-sm px-2 py-1 rounded-full shadow hover:bg-slate-300 dark:hover:bg-slate-600 transition">
+      <button
+        @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode)"
+        class="bg-slate-200 dark:bg-slate-700 text-sm px-2 py-1 rounded-full shadow hover:bg-slate-300 dark:hover:bg-slate-600 transition"
+      >
         <span x-text="darkMode ? '🌙 Oscuro' : '☀️ Claro'"></span>
       </button>
     </div>
   </div>
 
   {% if has_purchase_options %}
-  <div x-show="showModal" x-transition class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-    <div @click.away="showModal = false" class="bg-white dark:bg-slate-800 rounded-lg p-6 w-11/12 max-w-md shadow-lg overflow-y-auto max-h-[90vh] relative">
+  <div
+    x-show="showModal"
+    x-transition
+    class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50"
+  >
+    <div
+      @click.away="showModal = false"
+      class="bg-white dark:bg-slate-800 rounded-lg p-6 w-11/12 max-w-md shadow-lg overflow-y-auto max-h-[90vh] relative"
+    >
       <div class="flex flex-col items-center mb-4">
         {% if book and book.thumbnail or img %}
-          <img src="{{ book.thumbnail if book and book.thumbnail else img }}" alt="Portada del libro" class="h-40 object-contain mb-2" />
+        <img
+          src="{{ book.thumbnail if book and book.thumbnail else img }}"
+          alt="Portada del libro"
+          class="h-40 object-contain mb-2"
+        />
         {% endif %}
-        <h3 class="text-lg font-semibold text-gray-800 dark:text-white text-center">{{ t }}</h3>
-        <p class="text-sm text-gray-600 dark:text-gray-300 text-center">{{ a }}</p>
+        <h3
+          class="text-lg font-semibold text-gray-800 dark:text-white text-center"
+        >
+          {{ t }}
+        </h3>
+        <p class="text-sm text-gray-600 dark:text-gray-300 text-center">
+          {{ a }}
+        </p>
       </div>
-      <button @click="showModal = false" class="absolute top-2 right-3 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white text-xl font-bold">&times;</button>
+      <button
+        @click="showModal = false"
+        class="absolute top-2 right-3 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white text-xl font-bold"
+      >
+        &times;
+      </button>
       <ul class="space-y-3 mt-4">
         {% for _, link, alt, src in purchase_options if link %}
-          <li class="flex items-center justify-between">
-            <a href="{{ link }}" target="_blank">
-              <img src="{{ src }}" alt="{{ alt }}" class="h-5 {% if alt == 'Buscalibre' %}border border-gray-300 rounded bg-white{% endif %}" />
-            </a>
-            <a href="{{ link }}" target="_blank"
-               class="bg-green-600 dark:bg-green-500 text-white px-3 py-1 rounded hover:bg-green-700 dark:hover:bg-green-600 text-sm">
-              Comprar
-            </a>
-          </li>
+        <li class="flex items-center justify-between">
+          <a href="{{ link }}" target="_blank">
+            <img
+              src="{{ src }}"
+              alt="{{ alt }}"
+              class="h-5 {% if alt == 'Buscalibre' %}border border-gray-300 rounded bg-white{% endif %}"
+            />
+          </a>
+          <a
+            href="{{ link }}"
+            target="_blank"
+            class="bg-green-600 dark:bg-green-500 text-white px-3 py-1 rounded hover:bg-green-700 dark:hover:bg-green-600 text-sm"
+          >
+            Comprar
+          </a>
+        </li>
         {% endfor %}
       </ul>
     </div>
   </div>
   {% endif %}
 </div>
-{% endblock %}
-
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <script>
-let submitted = false;
-document.querySelectorAll('form').forEach(f => {
-  f.addEventListener('submit', e => {
-    if (submitted) {
-      e.preventDefault();
-    } else {
-      submitted = true;
-    }
+  let submitted = false;
+  document.querySelectorAll("form").forEach((f) => {
+    f.addEventListener("submit", (e) => {
+      if (submitted) {
+        e.preventDefault();
+      } else {
+        submitted = true;
+      }
+    });
   });
-});
 </script>
 {% endblock %}

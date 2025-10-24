@@ -1,6 +1,17 @@
 {% extends "layouts/base_user.html" %}
 {% set show_global_theme_toggle = true %}
-{% block title %}Resultados para "{{ query }}" - SmartStack{% endblock %}
+{% block title %}
+  {% if query %}
+    Resultados para "{{ query }}" - SmartStack
+  {% elif author %}
+    Libros escritos por "{{ author }}" - SmartStack
+  {% elif publisher %}
+    Libros publicados por "{{ publisher }}" - SmartStack
+  {% else %}
+    Resultados de búsqueda - SmartStack
+  {% endif %}
+{% endblock %}
+
 
 {% block user_content %}
 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -39,8 +50,22 @@
 
   <!-- Resultados -->
   <section class="lg:col-span-3">
-    <h2 class="text-2xl font-bold mb-2 text-gray-800 dark:text-white">Resultados para: "{{ query }}"</h2>
-    <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">Se encontraron <strong>{{ total_items }}</strong> libros en los idiomas seleccionados.</p>
+    <h2 class="text-2xl font-bold mb-2 text-gray-800 dark:text-white">
+      {% if query %}
+      Resultados para: "{{ query }}"
+{% elif author %}
+    Libros escritos por: "{{ author }}"
+  {% elif publisher %}
+    Libros publicados por: "{{ publisher }}"
+  {% else %}
+    Resultados de búsqueda
+  {% endif %}
+</h2>
+
+<p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
+  Se encontraron <strong>{{ total_items }}</strong> libros en los idiomas seleccionados.
+</p>
+
 
     {% if results %}
       <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">

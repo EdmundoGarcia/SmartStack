@@ -1,0 +1,138 @@
+{% extends "layouts/base.html" %}
+{% block title %}Escanear ISBN{% endblock %}
+
+{% block content %}
+<div class="px-4 py-6 bg-white dark:bg-slate-900 text-gray-800 dark:text-white">
+  <div class="max-w-3xl mx-auto flex flex-col items-center">
+
+    <!-- Título -->
+    <h2 class="text-2xl font-semibold mb-6 flex items-center gap-2">
+      <i class="fas fa-barcode text-blue-600 dark:text-blue-400"></i> Escanear ISBN del libro
+    </h2>
+
+    <!-- Contenedor de cámara -->
+    <div id="scanner-container" class="w-full max-w-2xl h-[320px] rounded shadow border border-gray-300 dark:border-slate-600 mb-2 overflow-hidden">
+      <div id="scanner" class="w-full h-full"></div>
+    </div>
+
+    <!-- Rectángulo para botón -->
+    <div class="w-full max-w-2xl bg-gray-100 dark:bg-slate-800 text-center py-4 rounded mb-6">
+      <button id="manual-btn" class="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300">
+        ¿No puedes escanearlo? Haz click aquí
+      </button>
+    </div>
+
+    <!-- Resultado -->
+    <div id="isbn-result" class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 p-4 rounded mb-4 hidden w-full max-w-2xl text-center">
+      <p><strong>ISBN detectado:</strong> <span id="isbn-value" class="font-mono"></span></p>
+      <div class="mt-2 flex justify-center gap-4">
+        <button id="confirm-btn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Sí, buscar libro</button>
+        <button id="cancel-btn" class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">No, intentar de nuevo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="manual-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white dark:bg-slate-800 text-gray-800 dark:text-white rounded-lg p-6 w-full max-w-sm shadow-lg">
+      <h3 class="text-lg font-semibold mb-2">Ingresa el código ISBN del libro</h3>
+      <input type="text" id="manual-isbn" maxlength="13" class="w-full border border-gray-300 dark:border-slate-600 px-3 py-2 rounded mb-4 bg-white dark:bg-slate-700" placeholder="Ej. 9788495408526">
+      <div class="flex justify-end gap-2">
+        <button id="manual-confirm" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Aceptar</button>
+        <button id="manual-cancel" class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<script>
+  const scanner = document.getElementById("scanner");
+  const resultBox = document.getElementById("isbn-result");
+  const isbnValue = document.getElementById("isbn-value");
+  const confirmBtn = document.getElementById("confirm-btn");
+  const cancelBtn = document.getElementById("cancel-btn");
+  const manualBtn = document.getElementById("manual-btn");
+  const manualModal = document.getElementById("manual-modal");
+  const manualConfirm = document.getElementById("manual-confirm");
+  const manualCancel = document.getElementById("manual-cancel");
+  const manualInput = document.getElementById("manual-isbn");
+
+  let detectedISBN = null;
+
+  function startScanner() {
+    scanner.innerHTML = "";
+    Quagga.init({
+      inputStream: {
+        name: "Live",
+        type: "LiveStream",
+        target: scanner,
+        constraints: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      },
+      locator: {
+        patchSize: "medium",
+        halfSample: true
+      },
+      decoder: {
+        readers: ["ean_reader"]
+      },
+      locate: true
+    }, function(err) {
+      if (err) {
+        console.error("Error al iniciar Quagga:", err);
+        return;
+      }
+      Quagga.start();
+    });
+  }
+
+  startScanner();
+
+  Quagga.onDetected(function(data) {
+    const code = data.codeResult.code;
+    if (/^97[89]\d{10}$/.test(code)) {
+      detectedISBN = code;
+      isbnValue.textContent = code;
+      resultBox.classList.remove("hidden");
+      Quagga.stop();
+    }
+  });
+
+  confirmBtn.onclick = function() {
+    if (detectedISBN) {
+      window.location.href = `/isbn/${detectedISBN}`;
+    }
+  };
+
+  cancelBtn.onclick = function() {
+    resultBox.classList.add("hidden");
+    detectedISBN = null;
+    Quagga.stop();
+    startScanner();
+  };
+
+  manualBtn.onclick = function() {
+    manualModal.classList.remove("hidden");
+  };
+
+  manualCancel.onclick = function() {
+    manualModal.classList.add("hidden");
+    manualInput.value = "";
+    Quagga.stop();
+    startScanner();
+  };
+
+  manualConfirm.onclick = function() {
+    const code = manualInput.value.trim();
+    if (/^97[89]\d{10}$/.test(code)) {
+      window.location.href = `/isbn/${code}`;
+    } else {
+      alert("ISBN inválido. Debe tener 13 dígitos y comenzar con 978 o 979.");
+    }
+  };
+</script>
+{% endblock %}
