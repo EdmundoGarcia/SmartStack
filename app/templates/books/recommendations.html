@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="container mx-auto px-4 py-6 text-center">
-  <h1 class="text-2xl font-semibold mb-6">📚 Recomendaciones personalizadas</h1>
+  <h1 class="text-2xl font-semibold mb-6">Recomendaciones personalizadas</h1>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -17,8 +17,29 @@
     {% endif %}
   {% endwith %}
 
+  <!-- Chips de categorías -->
+  <style>
+    .chip input[type="radio"]:checked + span {
+      background-color: #2563eb;
+      color: white;
+      border-color: #2563eb;
+    }
+  </style>
+
+  <div class="flex flex-wrap justify-center gap-2 mb-4" id="category-chips">
+    {% for cat in user_categories %}
+      <label class="chip cursor-pointer">
+        <input type="radio" name="selected_category" value="{{ cat }}" class="hidden">
+        <span class="px-3 py-1 rounded-full border text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-white hover:bg-blue-100 dark:hover:bg-blue-700 transition">
+          {{ cat }}
+        </span>
+      </label>
+    {% endfor %}
+  </div>
+
+
   <button
-    id="fetch-btn"
+    onclick="fetchRecommendationsWithFilters()"
     class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4"
   >
     Mostrar recomendaciones
@@ -30,25 +51,66 @@
 
   <div id="recommendations" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
 
-
   <script>
+  function fetchRecommendationsWithFilters() {
+    const selectedCategory = document.querySelector('input[name="selected_category"]:checked')?.value;
+    const params = new URLSearchParams();
+    if (selectedCategory) params.append("selected_category", selectedCategory);
+
+    document.getElementById("loader").classList.remove("hidden");
+    fetch("/recommendations/fetch?" + params.toString())
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("loader").classList.add("hidden");
+        renderRecommendations(data);
+      })
+      .catch(err => {
+        document.getElementById("loader").classList.add("hidden");
+        document.getElementById("recommendations").innerHTML = `
+          <div class="bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 p-4 rounded text-sm col-span-full">
+            Ocurrió un error al obtener recomendaciones. Intenta nuevamente.
+          </div>
+        `;
+        console.error("Error al obtener recomendaciones:", err);
+      });
+  }
+
   function renderBookCard(book) {
+    const descriptionId = `desc-${book.id}`;
     return `
-      <div class="bg-white dark:bg-gray-900 shadow rounded p-4 transition hover:shadow-lg">
-        <a href="/book/${book.id}" class="block hover:opacity-90 transition">
-          ${book.thumbnail ? `
-            <img src="${book.thumbnail}" alt="${book.title}" class="w-full h-48 object-cover mb-3 rounded">
-          ` : `
-            <div class="w-full h-48 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-sm text-gray-400 dark:text-gray-500 italic mb-3 rounded">
-              Sin portada disponible
-            </div>
-          `}
-          <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">${book.title}</h2>
-          <p class="text-sm text-gray-600 dark:text-gray-300">${book.author}</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+      <div class="bg-white dark:bg-gray-900 shadow rounded-lg p-4 flex flex-col justify-between transition hover:shadow-xl">
+        <div>
+          <a href="/book/${book.id}" class="block hover:opacity-90 transition">
+            ${book.thumbnail ? `
+              <img src="${book.thumbnail}" alt="${book.title}" class="w-full h-48 object-cover mb-3 rounded">
+            ` : `
+              <div class="w-full h-48 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-sm text-gray-400 dark:text-gray-500 italic mb-3 rounded">
+                Sin portada disponible
+              </div>
+            `}
+          </a>
+          <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">${book.title}</h2>
+          <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">${book.author}</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
             Idioma: ${book.language} &nbsp;|&nbsp; Similitud: ${book.similarity}
           </p>
-        </a>
+
+          <button
+            class="text-sm text-blue-600 dark:text-blue-400 hover:underline focus:outline-none mb-2"
+            onclick="document.getElementById('${descriptionId}').classList.toggle('hidden')"
+          >
+            Ver descripción
+          </button>
+          <div id="${descriptionId}" class="hidden text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-2 rounded">
+            ${book.description}
+          </div>
+        </div>
+
+        <div class="mt-4 text-right">
+          <a href="/book/${book.id}" class="text-sm text-primary hover:underline font-semibold">
+            Ver detalles →
+          </a>
+        </div>
       </div>
     `;
   }
@@ -80,27 +142,6 @@
       `;
     }
   }
-
-  function fetchRecommendations() {
-    document.getElementById("loader").classList.remove("hidden");
-    fetch("/recommendations/fetch")
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById("loader").classList.add("hidden");
-        renderRecommendations(data);
-      })
-      .catch(err => {
-        document.getElementById("loader").classList.add("hidden");
-        document.getElementById("recommendations").innerHTML = `
-          <div class="bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 p-4 rounded text-sm col-span-full">
-            Ocurrió un error al obtener recomendaciones. Intenta nuevamente.
-          </div>
-        `;
-        console.error("Error al obtener recomendaciones:", err);
-      });
-  }
-
-  document.getElementById("fetch-btn").addEventListener("click", fetchRecommendations);
-</script>
+  </script>
 </div>
 {% endblock %}
