@@ -10,7 +10,6 @@
     {% for book in books %}
       <div class="relative bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden flex flex-col">
 
-        <!-- Botón eliminar -->
         <form action="{{ url_for('books.remove_from_wishlist') }}" method="POST" class="absolute top-2 right-2 z-10">
           <input type="hidden" name="book_id" value="{{ book.google_id }}">
           <button type="submit" title="Eliminar de wishlist" class="text-red-600 hover:text-red-800">
@@ -18,7 +17,6 @@
           </button>
         </form>
 
-        <!-- Portada con enlace a detalles -->
         <a href="{{ url_for('books.book_detail', id=book.google_id) }}" class="w-full h-64 bg-gray-100 dark:bg-slate-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-slate-600 transition">
           {% if book.small_thumbnail %}
             <img src="{{ book.small_thumbnail }}" alt="Portada" class="max-h-full max-w-full object-contain">
@@ -27,7 +25,6 @@
           {% endif %}
         </a>
 
-        <!-- Información del libro -->
         <div class="p-4 flex flex-col justify-between flex-grow">
           <a href="{{ url_for('books.book_detail', id=book.google_id) }}" class="hover:underline">
             <h3 class="font-semibold text-base mb-1 line-clamp-2 text-gray-800 dark:text-white">{{ book.title }}</h3>

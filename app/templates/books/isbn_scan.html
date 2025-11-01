@@ -5,24 +5,23 @@
 <div class="px-4 py-6 bg-white dark:bg-slate-900 text-gray-800 dark:text-white">
   <div class="max-w-3xl mx-auto flex flex-col items-center">
 
-    <!-- Título -->
+    <!-- Title -->
     <h2 class="text-2xl font-semibold mb-6 flex items-center gap-2">
       <i class="fas fa-barcode text-blue-600 dark:text-blue-400"></i> Escanear ISBN del libro
     </h2>
 
-    <!-- Contenedor de cámara -->
+    <!-- cam -->
     <div id="scanner-container" class="w-full max-w-2xl h-[320px] rounded shadow border border-gray-300 dark:border-slate-600 mb-2 overflow-hidden">
       <div id="scanner" class="w-full h-full"></div>
     </div>
 
-    <!-- Rectángulo para botón -->
     <div class="w-full max-w-2xl bg-gray-100 dark:bg-slate-800 text-center py-4 rounded mb-6">
       <button id="manual-btn" class="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300">
         ¿No puedes escanearlo? Haz click aquí
       </button>
     </div>
 
-    <!-- Resultado -->
+    <!-- Result -->
     <div id="isbn-result" class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 p-4 rounded mb-4 hidden w-full max-w-2xl text-center">
       <p><strong>ISBN detectado:</strong> <span id="isbn-value" class="font-mono"></span></p>
       <div class="mt-2 flex justify-center gap-4">

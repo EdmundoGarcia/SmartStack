@@ -3,37 +3,49 @@ from flask import flash, current_app
 from app.models import Book
 from app.extensions import db
 
+import re
+import html
+from ftfy import fix_text
+
 def clean_description(text):
     if not text:
         return ""
-    import re
-    text = re.sub(r"<[^>]+>", " ", text)  # HTML tags
-    text = re.sub(r"http\S+|www\.\S+", " ", text)  # Enlaces
-    # text = re.sub(r"Este libro.*?Google Books.*?\.", " ", text, flags=re.IGNORECASE)
-    # text = re.sub(r"Este contenido.*?vista previa.*?\.", " ", text, flags=re.IGNORECASE)
-    text = re.sub(r"[^\x00-\x7F]+", " ", text)  # ASCII no imprimible
-    text = re.sub(r"[\n\r\t]+", " ", text)  # Saltos y tabulaciones
-    text = re.sub(r"\s{2,}", " ", text)  # Espacios dobles
-    return text.strip()
 
+    # Fix broken encoding before decoding HTML entities
+    text = fix_text(text)
+
+    # Decode HTML entities such as &lt;, &aacute;, etc.
+    text = html.unescape(text)
+
+    # Remove HTML tags
+    text = re.sub(r"<[^>]+>", " ", text)
+
+    # Remove URLs
+    text = re.sub(r"http\S+|www\.\S+", " ", text)
+
+    # Normalize whitespace
+    text = re.sub(r"[\n\r\t]+", " ", text)
+    text = re.sub(r"\s{2,}", " ", text)
+
+    return text.strip()
 
 def truncate(value, max_length):
     return value[:max_length] if value and len(value) > max_length else value
 
 def get_or_create_book(google_id, title, authors, thumbnail, language, isbn=None):
     if not google_id or not title:
-        flash("Faltan datos esenciales del libro.", "error")
-        current_app.logger.warning(f"[BOOK] Datos incompletos: google_id={google_id}, title={title}")
+        flash("Missing essential book data.", "error")
+        current_app.logger.warning(f"[BOOK] Incomplete data: google_id={google_id}, title={title}")
         return None
 
     isbn = isbn if isbn and isbn.lower() != "none" else None
 
-    # Buscar por ISBN si existe, si no por google_id
+    # Search by ISBN if available, otherwise by Google ID
     book = Book.query.filter_by(isbn=isbn).first() if isbn else Book.query.filter_by(google_id=google_id).first()
     if book:
         return book
 
-    # Obtener datos desde Google Books API
+    # Fetch book data from Google Books API
     try:
         response = requests.get(
             f"https://www.googleapis.com/books/v1/volumes/{google_id}",
@@ -41,20 +53,20 @@ def get_or_create_book(google_id, title, authors, thumbnail, language, isbn=None
             timeout=5
         )
     except requests.RequestException as e:
-        flash("Error al conectar con Google Books API. Intenta más tarde.", "error")
-        current_app.logger.error(f"[BOOK] Error de conexión con Google Books: {e}")
+        flash("Failed to connect to Google Books API. Try again later.", "error")
+        current_app.logger.error(f"[BOOK] Connection error: {e}")
         return None
 
     if response.status_code != 200:
-        flash("No se pudo obtener información del libro desde Google Books.", "error")
-        current_app.logger.warning(f"[BOOK] Respuesta inválida para {google_id}: {response.status_code}")
+        flash("Could not retrieve book information from Google Books.", "error")
+        current_app.logger.warning(f"[BOOK] Invalid response for {google_id}: {response.status_code}")
         return None
 
     data = response.json()
     volume = data.get("volumeInfo", {})
     if not volume:
-        flash("No se encontró información válida del libro.", "error")
-        current_app.logger.warning(f"[BOOK] volumeInfo vacío para {google_id}")
+        flash("No valid book information found.", "error")
+        current_app.logger.warning(f"[BOOK] Empty volumeInfo for {google_id}")
         return None
 
     author = ", ".join(volume.get("authors", [])) if volume.get("authors") else authors
@@ -81,7 +93,7 @@ def get_or_create_book(google_id, title, authors, thumbnail, language, isbn=None
     published_date = volume.get("publishedDate", "")
     publisher = volume.get("publisher", "")
 
-    # Buscar ISBN si no se proporcionó
+    # Extract ISBN if not provided
     if not isbn:
         for identifier in volume.get("industryIdentifiers", []):
             if identifier.get("type") == "ISBN_13":
@@ -94,10 +106,10 @@ def get_or_create_book(google_id, title, authors, thumbnail, language, isbn=None
                     break
     isbn = isbn if isbn and isbn.lower() != "none" else None
 
-    # Validación final antes de crear el libro
+    # Final validation before creating the book
     if not all([google_id, title, author, language]):
-        flash("No se pudo crear el libro. Faltan datos esenciales.", "error")
-        current_app.logger.warning(f"[BOOK] Datos incompletos: id={google_id}, title={title}, author={author}, language={language}")
+        flash("Book creation failed. Missing essential data.", "error")
+        current_app.logger.warning(f"[BOOK] Incomplete data: id={google_id}, title={title}, author={author}, language={language}")
         return None
 
     book = Book(
@@ -113,11 +125,13 @@ def get_or_create_book(google_id, title, authors, thumbnail, language, isbn=None
         publisher=truncate(publisher, 255),
         published_date=truncate(published_date, 20),
     )
-    # Advertencia si el libro tiene metadatos incompletos
+
+    # Warn if book has incomplete metadata
     if not book.author or not book.thumbnail or not book.isbn:
-        flash("⚠️ El libro fue agregado, pero tiene metadatos incompletos.", "info")
-        current_app.logger.warning(f"[BOOK] Metadatos incompletos: {book.title} ({book.google_id}) → author={book.author}, thumbnail={book.thumbnail}, isbn={book.isbn}")
+        flash("Book added with incomplete metadata.", "info")
+        current_app.logger.warning(f"[BOOK] Incomplete metadata: {book.title} ({book.google_id}) → author={book.author}, thumbnail={book.thumbnail}, isbn={book.isbn}")
+
     db.session.add(book)
     db.session.commit()
-    current_app.logger.info(f"[BOOK] Libro creado: {book.title} ({book.google_id})")
+    current_app.logger.info(f"[BOOK] Book created: {book.title} ({book.google_id})")
     return book

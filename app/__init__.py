@@ -16,7 +16,7 @@ def create_app():
 
 
     app.config["SESSION_TYPE"] = "filesystem"
-    app.config["SESSION_FILE_DIR"] = "flask_session_cache"  # opcional: carpeta local
+    app.config["SESSION_FILE_DIR"] = "flask_session_cache"
     app.config["SESSION_PERMANENT"] = False
     app.config["SESSION_USE_SIGNER"] = True
 

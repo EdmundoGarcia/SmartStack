@@ -20,14 +20,28 @@ CATEGORY_GROUPS = {
     "Self-Help & Wellness": ["Self-Help", "Motivation", "Mental Health", "Wellness", "Productivity"],
     "Business & Economics": ["Business", "Economics", "Finance", "Leadership", "Entrepreneurship"],
     "Science & Technology": ["Science", "Technology", "Physics", "Biology", "AI", "Engineering"],
-    "Young Adult": ["Young Adult", "YA Romance", "YA Fantasy", "Coming of Age"]
+    "Young Adult": ["Young Adult", "YA Romance", "YA Fantasy", "Coming of Age"],
+    "Poetry": ["Poetry", "Verse", "Anthology", "Contemporary Poetry"],
+    "Philosophy & Religion": ["Philosophy", "Religion", "Spirituality", "Theology", "Ethics"],
+    "Education & Learning": ["Education", "Pedagogy", "Study Guides", "Teaching", "Academic Skills"],
+    "Parenting & Relationships": ["Parenting", "Relationships", "Family", "Marriage", "Dating"],
+    "Art & Design": ["Art", "Design", "Photography", "Architecture", "Graphic Design"],
+    "Travel & Adventure": ["Travel", "Adventure", "Travel Guides", "Exploration", "Cultural Travel"],
+    "Cooking & Food": ["Cooking", "Cookbooks", "Food", "Nutrition", "Culinary Arts"],
+    "Politics & Society": ["Politics", "Sociology", "Current Affairs", "Social Issues", "Civic Engagement"],
+    "Comics & Graphic Novels": ["Comics", "Graphic Novels", "Manga", "Webcomics"],
+    "Children's Books": ["Children", "Picture Books", "Early Readers", "Middle Grade"]
 }
 
 def map_to_main_category(raw_category):
-    for main, subs in CATEGORY_GROUPS.items():
-        if any(sub.lower() in raw_category.lower() for sub in subs):
-            return main
+    if not raw_category:
+        return "Other"
+    raw = raw_category.lower()
+    for main_cat, subcats in CATEGORY_GROUPS.items():
+        if any(sub.lower() in raw for sub in subcats):
+            return main_cat
     return "Other"
+
 
 def group_books_by_category(user_books):
     grouped = defaultdict(list)
