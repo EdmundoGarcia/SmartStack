@@ -3,6 +3,20 @@ from flask import flash, current_app
 from app.models import Book
 from app.extensions import db
 
+def clean_description(text):
+    if not text:
+        return ""
+    import re
+    text = re.sub(r"<[^>]+>", " ", text)  # HTML tags
+    text = re.sub(r"http\S+|www\.\S+", " ", text)  # Enlaces
+    # text = re.sub(r"Este libro.*?Google Books.*?\.", " ", text, flags=re.IGNORECASE)
+    # text = re.sub(r"Este contenido.*?vista previa.*?\.", " ", text, flags=re.IGNORECASE)
+    text = re.sub(r"[^\x00-\x7F]+", " ", text)  # ASCII no imprimible
+    text = re.sub(r"[\n\r\t]+", " ", text)  # Saltos y tabulaciones
+    text = re.sub(r"\s{2,}", " ", text)  # Espacios dobles
+    return text.strip()
+
+
 def truncate(value, max_length):
     return value[:max_length] if value and len(value) > max_length else value
 
@@ -44,7 +58,7 @@ def get_or_create_book(google_id, title, authors, thumbnail, language, isbn=None
         return None
 
     author = ", ".join(volume.get("authors", [])) if volume.get("authors") else authors
-    description = volume.get("description", "")
+    description = clean_description(volume.get("description", ""))
     categories = volume.get("categories", [])
     categories_text = ", ".join(categories) if categories else ""
     image_links = volume.get("imageLinks", {})

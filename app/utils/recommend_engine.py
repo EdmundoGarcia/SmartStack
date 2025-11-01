@@ -6,6 +6,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from flask import current_app
 from collections import defaultdict
+from app.utils.books import clean_description
 
 CATEGORY_GROUPS = {
     "Fiction": ["Fiction", "Literary Fiction", "Contemporary Fiction", "Short Stories"],
@@ -54,7 +55,7 @@ def build_user_profile(user_books, selected_categories=None):
             clean_text(b.categories),
             clean_text(b.language),
             clean_text(b.publisher),
-            clean_text(b.description)
+            clean_text(clean_description(b.description))
         ])
         corpus.append(enriched)
 
@@ -158,7 +159,7 @@ def fetch_google_books(
             clean_text(language),
             clean_text(publisher),
             clean_text(description)
-        ])
+            ])
         book_vector = vectorizer.transform([enriched])
         score = cosine_similarity([profile_vector], book_vector)[0][0]
 

@@ -12,7 +12,7 @@ import requests
 from flask_login import login_required, current_user
 from app.models import Book, Wishlist, UserLibrary, User
 from app.extensions import db
-from app.utils.books import get_or_create_book
+from app.utils.books import get_or_create_book, clean_description
 import math
 import hashlib
 from datetime import datetime, timedelta
@@ -130,7 +130,7 @@ def search_books():
                 "authors": volume.get("authors", []),
                 "language": lang,
                 "thumbnail": volume.get("imageLinks", {}).get("thumbnail"),
-                "description": volume.get("description"),
+                "description": clean_description(volume.get("description", "")),
                 "publisher": volume.get("publisher", "").strip(),
                 "publishedDate": volume.get("publishedDate"),
                 "categories": volume.get("categories", []),
@@ -350,7 +350,7 @@ def book_detail(id):
             "authors": [book.author],
             "language": book.language,
             "imageLinks": {"thumbnail": book.small_thumbnail} if book.small_thumbnail else {},
-            "description": book.description or "Descripción no disponible",
+            "description": clean_description(book.description) if book.description else "Descripción no disponible",
             "publisher": book.publisher or "Editorial no disponible",
             "publishedDate": book.published_date or "Fecha no disponible",
             "categories": book.categories.split(",") if book.categories else [],
@@ -367,7 +367,7 @@ def book_detail(id):
             "authors": cached_data.get("authors", []),
             "language": cached_data.get("language", "Idioma no disponible"),
             "imageLinks": {"thumbnail": cached_data.get("thumbnail")} if cached_data.get("thumbnail") else {},
-            "description": cached_data.get("description", "Descripción no disponible"),
+            "description": clean_description(cached_data.get("description", "")) or "Descripción no disponible",
             "publisher": cached_data.get("publisher", "Editorial no disponible"),
             "publishedDate": cached_data.get("publishedDate", "Fecha no disponible"),
             "categories": cached_data.get("categories", []),
@@ -392,7 +392,7 @@ def book_detail(id):
             "authors": volume.get("authors", []),
             "language": volume.get("language", "Idioma no disponible"),
             "imageLinks": {"thumbnail": volume.get("imageLinks", {}).get("thumbnail")} if volume.get("imageLinks", {}).get("thumbnail") else {},
-            "description": volume.get("description", "Descripción no disponible"),
+            "description": clean_description(volume.get("description", "")) or "Descripción no disponible",
             "publisher": volume.get("publisher", "Editorial no disponible").strip(),
             "publishedDate": volume.get("publishedDate", "Fecha no disponible"),
             "categories": volume.get("categories", []),
