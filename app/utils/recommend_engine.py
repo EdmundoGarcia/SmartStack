@@ -42,12 +42,11 @@ def map_to_main_category(raw_category):
             return main_cat
     return "Other"
 
-
 def group_books_by_category(user_books):
     grouped = defaultdict(list)
     for b in user_books:
         if b.categories:
-            for raw_cat in b.categories.split("/"):
+            for raw_cat in b.categories.split(","):
                 main_cat = map_to_main_category(raw_cat)
                 grouped[main_cat].append(b)
     return grouped
@@ -60,13 +59,14 @@ def build_user_profile(user_books, selected_categories=None):
     for b in user_books:
         if not (b.author and b.categories and b.language):
             continue
+        normalized = b.categories.split(",")
         if selected_categories:
-            if not any(map_to_main_category(cat) in selected_categories for cat in b.categories.split("/")):
+            if not any(map_to_main_category(cat) in selected_categories for cat in normalized):
                 continue
         enriched = " ".join([
             clean_text(b.title),
             clean_text(b.author),
-            clean_text(b.categories),
+            clean_text(",".join(normalized)),
             clean_text(b.language),
             clean_text(b.publisher),
             clean_text(clean_description(b.description))
@@ -93,7 +93,7 @@ def fetch_google_books(
     vectorizer,
     api_key,
     user_books,
-    shown_ids=set(),
+    shown_ids=None,
     selected_categories=None,
     max_results=40,
     min_similarity=0.25
@@ -101,7 +101,11 @@ def fetch_google_books(
     if profile_vector is None:
         return []
 
-    user_ids = {b.google_id.strip().lower() for b in user_books if b.google_id}
+    shown_ids = shown_ids or set()
+
+    user_ids = {b.google_id.strip() for b in user_books if b.google_id}
+    shown_ids.update(user_ids)
+
     seen_titles, seen_authors, seen_isbns = set(), set(), set()
     results = []
 
@@ -126,6 +130,7 @@ def fetch_google_books(
         except requests.RequestException:
             return []
 
+    # Fetch Google Books
     items = []
     for query in categories_to_use:
         items += fetch_items("es", query)
@@ -135,20 +140,29 @@ def fetch_google_books(
 
     for item in items:
         volume = item.get("volumeInfo", {})
-        gid = item.get("id", "").strip().lower()
-        if gid in user_ids or gid in shown_ids:
+        gid = item.get("id", "").strip()
+
+        # Exlude books that are already in the library or seen
+        if gid in shown_ids:
+            current_app.logger.debug(f"[RECOMMEND] Excluido por ID: {gid}")
             continue
 
         title = volume.get("title", "").strip().lower()
         authors = volume.get("authors", [])
         normalized_authors = [normalize_author(a) for a in authors]
+
         if title in seen_titles or any(a in seen_authors for a in normalized_authors):
-            continue
-        if not authors or not volume.get("description"):
+            current_app.logger.debug(f"[RECOMMEND] Excluido por autor/título repetido: {title}")
             continue
 
-        categories = volume.get("categories", [])
-        category = categories[0] if categories else ""
+        if not authors or not volume.get("description"):
+            current_app.logger.debug(f"[RECOMMEND] Excluido por falta de autores o descripción: {gid}")
+            continue
+
+        raw_categories = volume.get("categories", [])
+        mapped_categories = [map_to_main_category(cat) for cat in raw_categories]
+        category = mapped_categories[0] if mapped_categories else ""
+
         language = volume.get("language", "")
         if language not in ("es", "en"):
             continue
@@ -173,7 +187,7 @@ def fetch_google_books(
             clean_text(language),
             clean_text(publisher),
             clean_text(description)
-            ])
+        ])
         book_vector = vectorizer.transform([enriched])
         score = cosine_similarity([profile_vector], book_vector)[0][0]
 
@@ -182,13 +196,14 @@ def fetch_google_books(
             continue
 
         result = {
+            "google_id": gid,
             "id": gid,
             "title": title_raw,
             "author": ", ".join(authors),
             "authors": authors,
             "language": language,
             "thumbnail": volume.get("imageLinks", {}).get("thumbnail"),
-            "categories": categories,
+            "categories": raw_categories,
             "description": description,
             "publisher": publisher,
             "publishedDate": volume.get("publishedDate", ""),

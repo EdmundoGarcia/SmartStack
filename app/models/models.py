@@ -26,7 +26,7 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=False)
 
-    # Relaciones uno a uno
+    # One to one relations
     wishlist = db.relationship('Wishlist', back_populates='user', uselist=False)
     library = db.relationship('UserLibrary', back_populates='user', uselist=False)
 

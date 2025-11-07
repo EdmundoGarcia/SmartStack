@@ -1,5 +1,4 @@
 {% extends "layouts/base_user.html" %}
-{% set show_global_theme_toggle = true %}
 {% block title %}
   {% if query %}
     Resultados para "{{ query }}" - SmartStack
@@ -11,7 +10,6 @@
     Resultados de búsqueda - SmartStack
   {% endif %}
 {% endblock %}
-
 
 {% block user_content %}
 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -52,67 +50,60 @@
   <section class="lg:col-span-3">
     <h2 class="text-2xl font-bold mb-2 text-gray-800 dark:text-white">
       {% if query %}
-      Resultados para: "{{ query }}"
-{% elif author %}
-    Libros escritos por: "{{ author }}"
-  {% elif publisher %}
-    Libros publicados por: "{{ publisher }}"
-  {% else %}
-    Resultados de búsqueda
-  {% endif %}
-</h2>
+        Resultados para: "{{ query }}"
+      {% elif author %}
+        Libros escritos por: "{{ author }}"
+      {% elif publisher %}
+        Libros publicados por: "{{ publisher }}"
+      {% else %}
+        Resultados de búsqueda
+      {% endif %}
+    </h2>
 
-<p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
-  Se encontraron <strong>{{ total_items }}</strong> libros en los idiomas seleccionados.
-</p>
-
+    <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
+      Se encontraron <strong>{{ total_items }}</strong> libros en los idiomas seleccionados.
+    </p>
 
     {% if results %}
       <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
         {% for item in results %}
-          {% set info = item.volumeInfo %}
-          {% set isbn = None %}
-          {% if info.industryIdentifiers %}
-            {% for identifier in info.industryIdentifiers %}
-              {% if identifier.type == "ISBN_13" or identifier.type == "ISBN_10" %}
-                {% if not isbn %}
-                  {% set isbn = identifier.identifier.replace('-', '') %}
-                {% endif %}
-              {% endif %}
-            {% endfor %}
-          {% endif %}
+          {% set book = search_cache[item.id] %}
+          {% set book = book.update({'id': item.id}) or book %}
           <div class="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden flex flex-col">
-            <a href="{{ url_for('books.book_detail', id=item.id) }}" class="w-full h-64 bg-gray-100 dark:bg-slate-700 flex items-center justify-center hover:opacity-90 transition">
-              {% if info.imageLinks and info.imageLinks.thumbnail %}
-  <img src="{{ info.imageLinks.thumbnail }}" alt="Portada" class="...">
-{% else %}
-  <div class="flex items-center justify-center h-40 bg-gray-100 dark:bg-slate-700 text-gray-400 dark:text-gray-500 text-sm italic">
-    Sin portada disponible
-  </div>
-{% endif %}
+            <a href="{{ url_for('books.book_detail', id=book.id) }}" class="w-full h-64 bg-gray-100 dark:bg-slate-700 flex items-center justify-center hover:opacity-90 transition">
+              {% if book.thumbnail %}
+                <img src="{{ book.thumbnail }}" alt="Portada" class="max-h-60 object-contain" />
+              {% else %}
+                <div class="flex items-center justify-center h-40 bg-gray-100 dark:bg-slate-700 text-gray-400 dark:text-gray-500 text-sm italic">
+                  Sin portada disponible
+                </div>
+              {% endif %}
             </a>
 
             <div class="p-4 flex flex-col justify-between flex-grow">
               <div>
                 <h3 class="font-semibold text-base mb-1 line-clamp-2">
-                  <a href="{{ url_for('books.book_detail', id=item.id) }}" class="hover:underline text-blue-700 dark:text-blue-400">{{ info.title }}</a>
+                  <a href="{{ url_for('books.book_detail', id=book.id) }}" class="hover:underline text-blue-700 dark:text-blue-400">{{ book.title }}</a>
                 </h3>
-                <p class="text-xs text-gray-600 dark:text-gray-300 mb-1">{{ info.authors|join(', ') }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Idioma: {{ info.language or 'N/A' }}</p>
+                <p class="text-xs text-gray-600 dark:text-gray-300 mb-1">{{ book.authors | join(', ') }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Idioma: {{ book.language or 'N/A' }}</p>
               </div>
 
-              <div class="mt-4 flex justify-between items-center">
+              <div class="mt-4 flex justify-start gap-6 items-center">
                 <!-- Biblioteca -->
                 <form method="POST" action="{{ url_for('books.add_to_library') }}">
-                  <input type="hidden" name="book_id" value="{{ item.id }}">
-                  <input type="hidden" name="title" value="{{ info.title }}">
-                  <input type="hidden" name="authors" value="{{ info.authors|join(', ') }}">
-                  <input type="hidden" name="language" value="{{ info.language }}">
-                  <input type="hidden" name="thumbnail" value="{{ info.imageLinks.thumbnail if info.imageLinks }}">
-                  <input type="hidden" name="isbn" value="{{ isbn }}">
+                  <input type="hidden" name="book_id" value="{{ book.id }}">
+                  <input type="hidden" name="title" value="{{ book.title }}">
+                  <input type="hidden" name="authors" value="{{ book.authors | join(', ') }}">
+                  <input type="hidden" name="language" value="{{ book.language }}">
+                  <input type="hidden" name="thumbnail" value="{{ book.thumbnail }}">
+                  <input type="hidden" name="isbn" value="{{ book.isbn }}">
+                  <!-- <input type="hidden" name="categories" value="{{ book.categories | join(', ') }}">
+                    -->
+                  <input type="hidden" name="categories" value="{% if book.categories is iterable and book.categories is not string %}{{ book.categories | join(', ') }}{% else %}{{ book.categories }}{% endif %}">
                   <input type="hidden" name="submitted" value="{{ range(1000000)|random }}">
                   <button type="submit" class="hover:scale-110 transition" title="Agregar a biblioteca">
-                    {% if library_ids and item.id in library_ids %}
+                    {% if library_ids and book.id in library_ids %}
                       <i class="fas fa-bookmark fa-lg" title="Ya en biblioteca"></i>
                     {% else %}
                       <i class="far fa-bookmark fa-lg" title="Agregar a biblioteca"></i>
@@ -122,27 +113,32 @@
 
                 <!-- Wishlist -->
                 <form method="POST" action="{{ url_for('books.add_to_wishlist') }}">
-                  <input type="hidden" name="book_id" value="{{ item.id }}">
-                  <input type="hidden" name="title" value="{{ info.title }}">
-                  <input type="hidden" name="authors" value="{{ info.authors|join(', ') }}">
-                  <input type="hidden" name="language" value="{{ info.language }}">
-                  <input type="hidden" name="thumbnail" value="{{ info.imageLinks.thumbnail if info.imageLinks }}">
-                  <input type="hidden" name="isbn" value="{{ isbn }}">
+                  <input type="hidden" name="book_id" value="{{ book.id }}">
+                  <input type="hidden" name="title" value="{{ book.title }}">
+                  <input type="hidden" name="authors" value="{{ book.authors | join(', ') }}">
+                  <input type="hidden" name="language" value="{{ book.language }}">
+                  <input type="hidden" name="thumbnail" value="{{ book.thumbnail }}">
+                  <input type="hidden" name="isbn" value="{{ book.isbn }}">
+                  <input type="hidden" name="categories" value="{{ book.categories | join(', ') }}">
                   <input type="hidden" name="submitted" value="{{ range(1000000)|random }}">
                   <button type="submit" class="hover:scale-110 transition" title="Agregar a wishlist">
-                    {% if wishlist_ids and item.id in wishlist_ids %}
+                    {% if wishlist_ids and book.id in wishlist_ids %}
                       <i class="fas fa-heart fa-lg" title="Ya en wishlist"></i>
                     {% else %}
                       <i class="far fa-heart fa-lg" title="Agregar a wishlist"></i>
                     {% endif %}
                   </button>
                 </form>
+
+                <!-- Vista rápida -->
+                {% include "components/quick_view_modal.html" %}
               </div>
             </div>
           </div>
         {% endfor %}
       </div>
-            <!-- Pagination -->
+
+      <!-- Pagination -->
       <div class="mt-6 flex justify-center space-x-2">
         {% for p in range(1, total_pages + 1) %}
           <a href="{{ url_for('books.search_books', q=query, page=p, order=order_by, author=author, publisher=publisher, lang=lang_filters) }}"

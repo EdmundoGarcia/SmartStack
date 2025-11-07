@@ -74,19 +74,19 @@ def register():
             flash("Ese correo ya está registrado.", "error")
             return redirect(url_for('auth.register'))
 
-        # Crear usuario (inactivo)
+        # Create inactive user
         password_hash = generate_password_hash(password_raw)
         user = User(username=username, email=email, password_hash=password_hash, is_active=False)
         db.session.add(user)
         db.session.commit()
 
-        # ✅ Crear biblioteca y wishlist automáticamente
+        # Create user's wishlist & library automatically
         library = UserLibrary(user=user)
         wishlist = Wishlist(user=user)
         db.session.add_all([library, wishlist])
         db.session.commit()
 
-        # Token de activación
+        # Activation token
         s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
         token = s.dumps(email, salt='email-confirm')
         activation_link = url_for('auth.activate_account', token=token, _external=True)
@@ -173,7 +173,7 @@ def reset_password(token):
     s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
 
     try:
-        email = s.loads(token, salt='password-reset', max_age=3600)  # Token válido por 1 hora
+        email = s.loads(token, salt='password-reset', max_age=3600)  # Token valid for 1 hour
     except:
         flash("El enlace ha expirado o es inválido.", "error")
         return redirect(url_for('auth.forgot_password'))
@@ -187,22 +187,23 @@ def reset_password(token):
         new_password = request.form.get('password', '').strip()
         confirm_password = request.form.get('confirm_password', '').strip()
 
-        # Validación: coincidencia
+        # Validation: passwords match
+
         if new_password != confirm_password:
             flash("Las contraseñas no coinciden.", "error")
             return redirect(url_for('auth.reset_password', token=token))
 
-        # Validación: requisitos mínimos
+        # Validation: password meets minimum requirements
         if len(new_password) < 8 or not re.search(r'[A-Z]', new_password) or not re.search(r'[a-z]', new_password) or not re.search(r'\d', new_password):
             flash("La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.", "error")
             return redirect(url_for('auth.reset_password', token=token))
 
-        # Validación: no repetir la contraseña actual
+        # Do not repeat the current password
         if check_password_hash(user.password_hash, new_password):
             flash("La nueva contraseña no puede ser igual a la actual.", "error")
             return redirect(url_for('auth.reset_password', token=token))
 
-        # Actualización
+        # Password updates
         user.password_hash = generate_password_hash(new_password)
         db.session.commit()
 

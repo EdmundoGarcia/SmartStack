@@ -1,3 +1,4 @@
+
 from flask import (
     Blueprint,
     render_template,
@@ -26,6 +27,10 @@ import numpy as np
 
 books_bp = Blueprint("books", __name__)
 
+@books_bp.route('/')
+@login_required
+def dashboard():
+    return render_template('user/dashboard.html')
 
 @books_bp.route("/search")
 @login_required
@@ -66,7 +71,6 @@ def search_books():
         session["search_cache"].clear()
         session["query_cache"] = {}
 
-    # Si no hay query ni filtros, muestra advertencia
     if not query and not author_filter and not publisher:
         flash("Ingresa una palabra clave, autor o editorial para buscar libros.", "warning")
         return render_template("books/search.html", results=[], page=page, total_pages=0)
@@ -87,7 +91,6 @@ def search_books():
         q += f"+inpublisher:{publisher}"
 
 
-    # Clave de caché por query enriquecida y página
     cache_key = f"{q}|{publisher}|{order_by}|{','.join(lang_filters)}|page:{page}"
     query_cache = session.setdefault("query_cache", {})
 
@@ -161,7 +164,9 @@ def search_books():
         order_by=order_by,
         wishlist_ids=wishlist_ids,
         library_ids=library_ids,
-        total_items=total_items
+        total_items=total_items,
+        search_cache=session.get("search_cache", {})
+
     )
 
 
@@ -441,7 +446,7 @@ def recommendations():
         current_app.logger.info(f"[RECOMMEND] Usuario {current_user.id} sin perfil suficiente ni caché.")
 
     grouped = group_books_by_category(user_books)
-    user_categories = sorted(grouped.keys())  # solo categorías presentes en su biblioteca
+    user_categories = sorted(grouped.keys())  # only categories on user's library
 
     return render_template("books/recommendations.html", user_categories=user_categories)
 
@@ -509,7 +514,6 @@ def fetch_recommendations():
 
     current_app.logger.info(f"[RECOMMEND] Sin resultados útiles para perfil {profile_hash}.")
     return {"books": []}
-
 
 
 @books_bp.route("/search/isbn-scan")

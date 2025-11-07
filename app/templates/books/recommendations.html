@@ -1,6 +1,5 @@
 {% extends "layouts/base.html" %}
 {% block title %}Recomendaciones{% endblock %}
-
 {% block content %}
 <div class="container mx-auto px-4 py-6 text-center">
   <h1 class="text-2xl font-semibold mb-6">Recomendaciones personalizadas</h1>
@@ -17,7 +16,6 @@
     {% endif %}
   {% endwith %}
 
-  <!-- Chips -->
   <style>
     .chip input[type="radio"]:checked + span {
       background-color: #2563eb;
@@ -29,7 +27,7 @@
   <div class="flex flex-wrap justify-center gap-2 mb-4" id="category-chips">
     {% for cat in user_categories %}
       <label class="chip cursor-pointer">
-        <input type="radio" name="selected_category" value="{{ cat }}" class="hidden">
+        <input type="radio" name="selected_category" value="{{ cat }}" class="hidden" />
         <span class="px-3 py-1 rounded-full border text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-white hover:bg-blue-100 dark:hover:bg-blue-700 transition">
           {{ cat }}
         </span>
@@ -37,11 +35,7 @@
     {% endfor %}
   </div>
 
-
-  <button
-    onclick="fetchRecommendationsWithFilters()"
-    class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4"
-  >
+  <button onclick="fetchRecommendationsWithFilters()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4">
     Mostrar recomendaciones
   </button>
 
@@ -50,8 +44,29 @@
   </div>
 
   <div id="recommendations" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
+<script>
+  const ROUTES = {
+    addToLibrary: "{{ url_for('books.add_to_library') }}",
+    addToWishlist: "{{ url_for('books.add_to_wishlist') }}"
+  };
 
-  <script>
+  function submitForm(route, data) {
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = route;
+
+    for (const key in data) {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = key;
+      input.value = data[key];
+      form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+
   function fetchRecommendationsWithFilters() {
     const selectedCategory = document.querySelector('input[name="selected_category"]:checked')?.value;
     const params = new URLSearchParams();
@@ -59,12 +74,12 @@
 
     document.getElementById("loader").classList.remove("hidden");
     fetch("/recommendations/fetch?" + params.toString())
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         document.getElementById("loader").classList.add("hidden");
         renderRecommendations(data);
       })
-      .catch(err => {
+      .catch((err) => {
         document.getElementById("loader").classList.add("hidden");
         document.getElementById("recommendations").innerHTML = `
           <div class="bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 p-4 rounded text-sm col-span-full">
@@ -76,41 +91,105 @@
   }
 
   function renderBookCard(book) {
-    const descriptionId = `desc-${book.id}`;
+    if (!book.google_id) return "";
+
     return `
-      <div class="bg-white dark:bg-gray-900 shadow rounded-lg p-4 flex flex-col justify-between transition hover:shadow-xl">
-        <div>
-          <a href="/book/${book.id}" class="block hover:opacity-90 transition">
-            ${book.thumbnail ? `
-              <img src="${book.thumbnail}" alt="${book.title}" class="w-full h-48 object-cover mb-3 rounded">
-            ` : `
-              <div class="w-full h-48 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-sm text-gray-400 dark:text-gray-500 italic mb-3 rounded">
-                Sin portada disponible
-              </div>
-            `}
-          </a>
-          <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">${book.title}</h2>
-          <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">${book.author}</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-            Idioma: ${book.language} &nbsp;|&nbsp; Similitud: ${book.similarity}
-          </p>
+      <div class="bg-white dark:bg-gray-900 shadow rounded-lg p-4 flex flex-col transition hover:shadow-xl">
+        <a href="/book/${book.google_id}" class="block group">
+          ${
+            book.thumbnail
+              ? `<div class="w-full h-48 sm:h-56 md:h-64 mb-3 overflow-hidden rounded flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                  <img src="${book.thumbnail}" alt="${book.title}" class="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300">
+                </div>`
+              : `<div class="aspect-w-2 aspect-h-3 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-sm text-gray-400 dark:text-gray-500 italic mb-3 rounded">
+                  Sin portada disponible
+                </div>`
+          }
+          <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 hover:text-blue-600 dark:hover:text-blue-400 transition">
+            ${book.title}
+          </h2>
+        </a>
+        <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">${book.author}</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+          Idioma: ${book.language} &nbsp;|&nbsp; Similitud: ${book.similarity}
+        </p>
 
-          <button
-            class="text-sm text-blue-600 dark:text-blue-400 hover:underline focus:outline-none mb-2"
-            onclick="document.getElementById('${descriptionId}').classList.toggle('hidden')"
-          >
-            Ver descripción
+        <div class="flex justify-between mb-2">
+          <button onclick='submitForm("${ROUTES.addToLibrary}", {
+            book_id: "${book.google_id}",
+            title: "${book.title}",
+            authors: "${book.author}",
+            language: "${book.language}",
+            thumbnail: "${book.thumbnail || ""}",
+            isbn: "${book.isbn || ""}",
+            categories: "${(book.categories || []).join(", ")}",
+            submitted: "${Math.floor(Math.random() * 1000000)}"
+          })' class="text-primary hover:scale-110 transition" title="Agregar a biblioteca">
+            <i class="far fa-bookmark fa-lg"></i>
           </button>
-          <div id="${descriptionId}" class="hidden text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-2 rounded">
-            ${book.description}
-          </div>
+
+          <button onclick='submitForm("${ROUTES.addToWishlist}", {
+            book_id: "${book.google_id}",
+            title: "${book.title}",
+            authors: "${book.author}",
+            language: "${book.language}",
+            thumbnail: "${book.thumbnail || ""}",
+            isbn: "${book.isbn || ""}",
+            categories: "${(book.categories || []).join(", ")}",
+            submitted: "${Math.floor(Math.random() * 1000000)}"
+          })' class="text-red-500 hover:scale-110 transition" title="Agregar a wishlist">
+            <i class="far fa-heart fa-lg"></i>
+          </button>
         </div>
 
-        <div class="mt-4 text-right">
-          <a href="/book/${book.id}" class="text-sm text-primary hover:underline font-semibold">
-            Ver detalles →
-          </a>
-        </div>
+        ${renderQuickView(book)}
+      </div>
+    `;
+  }
+
+  function renderQuickView(book) {
+    return `
+      <div x-data="{
+        open: false,
+        toggleScroll(value) {
+          document.body.classList.toggle('overflow-hidden', value);
+        }
+      }" @keydown.escape.window="open = false" x-effect="toggleScroll(open)">
+        <button @click="open = true" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">Vista rápida</button>
+
+        <template x-if="open">
+          <div @click.self="open = false" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div class="bg-white dark:bg-slate-800 rounded-lg shadow-lg max-w-md w-full p-6 relative overflow-y-auto max-h-[90vh]">
+              <button @click="open = false" class="absolute top-2 right-2 text-gray-500 hover:text-red-500">
+                <i class="fas fa-times"></i>
+              </button>
+
+              ${
+                book.thumbnail
+                  ? `<img src="${book.thumbnail}" alt="Portada" class="w-full h-64 object-contain mb-4" />`
+                  : ""
+              }
+
+              <h3 class="text-xl font-bold mb-2 text-gray-800 dark:text-white">
+                <a href="/book/${book.google_id}" class="hover:underline text-blue-700 dark:text-blue-400">${book.title}</a>
+              </h3>
+
+              <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Autor: ${book.author}</p>
+              <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Idioma: ${book.language}</p>
+              <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">ISBN: ${book.isbn || "N/A"}</p>
+
+              ${
+                book.description
+                  ? `<p class="text-sm text-gray-700 dark:text-gray-400 mt-2 whitespace-pre-line">${book.description}</p>`
+                  : ""
+              }
+
+              <div class="mt-4 text-sm text-gray-500 dark:text-gray-400 italic">
+                Puedes agregar este libro desde la tarjeta principal.
+              </div>
+            </div>
+          </div>
+                </template>
       </div>
     `;
   }
@@ -133,7 +212,9 @@
         `;
       }
 
-      booksToShow.forEach(book => container.innerHTML += renderBookCard(book));
+      booksToShow.forEach(book => {
+        container.innerHTML += renderBookCard(book);
+      });
     } else {
       container.innerHTML = `
         <div class="bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 p-4 rounded text-sm col-span-full">
@@ -142,6 +223,6 @@
       `;
     }
   }
-  </script>
+</script>
 </div>
 {% endblock %}

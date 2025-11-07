@@ -4,15 +4,3 @@ from app.models import User
 from app.extensions import db
 
 bp = Blueprint('main', __name__)
-
-
-@bp.route('/')
-@login_required
-def dashboard():
-    return render_template('user/dashboard.html')
-
-@bp.route('/scan')
-@login_required
-def scan():
-    return render_template('user/scan.html')
-
