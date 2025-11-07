@@ -6,7 +6,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from flask import current_app
 from collections import defaultdict
-from app.utils.books import clean_description
+from app.utils.books import clean_description, normalize_categories
 
 CATEGORY_GROUPS = {
     "Fiction": ["Fiction", "Literary Fiction", "Contemporary Fiction", "Short Stories"],
@@ -46,7 +46,7 @@ def group_books_by_category(user_books):
     grouped = defaultdict(list)
     for b in user_books:
         if b.categories:
-            for raw_cat in b.categories.split(","):
+            for raw_cat in normalize_categories(b.categories.split(",")):
                 main_cat = map_to_main_category(raw_cat)
                 grouped[main_cat].append(b)
     return grouped
@@ -59,7 +59,7 @@ def build_user_profile(user_books, selected_categories=None):
     for b in user_books:
         if not (b.author and b.categories and b.language):
             continue
-        normalized = b.categories.split(",")
+        normalized = normalize_categories(b.categories.split(","))
         if selected_categories:
             if not any(map_to_main_category(cat) in selected_categories for cat in normalized):
                 continue
@@ -98,7 +98,7 @@ def fetch_google_books(
     max_results=40,
     min_similarity=0.25
 ):
-    if profile_vector is None:
+    if profile_vector is None or not selected_categories:
         return []
 
     shown_ids = shown_ids or set()
@@ -110,7 +110,7 @@ def fetch_google_books(
     results = []
 
     categories_to_use = []
-    for cat in selected_categories or ["Fiction"]:
+    for cat in selected_categories:
         categories_to_use.extend(CATEGORY_GROUPS.get(cat, [cat]))
 
     def fetch_items(lang, query):
@@ -130,7 +130,6 @@ def fetch_google_books(
         except requests.RequestException:
             return []
 
-    # Fetch Google Books
     items = []
     for query in categories_to_use:
         items += fetch_items("es", query)
@@ -142,7 +141,6 @@ def fetch_google_books(
         volume = item.get("volumeInfo", {})
         gid = item.get("id", "").strip()
 
-        # Exlude books that are already in the library or seen
         if gid in shown_ids:
             current_app.logger.debug(f"[RECOMMEND] Excluido por ID: {gid}")
             continue
@@ -160,8 +158,13 @@ def fetch_google_books(
             continue
 
         raw_categories = volume.get("categories", [])
-        mapped_categories = [map_to_main_category(cat) for cat in raw_categories]
+        normalized_categories = normalize_categories(raw_categories)
+        mapped_categories = [map_to_main_category(cat) for cat in normalized_categories]
         category = mapped_categories[0] if mapped_categories else ""
+
+        if category not in selected_categories:
+            current_app.logger.debug(f"[RECOMMEND] Excluido por categoría fuera de selección: {category}")
+            continue
 
         language = volume.get("language", "")
         if language not in ("es", "en"):

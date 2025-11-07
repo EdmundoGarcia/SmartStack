@@ -5,14 +5,18 @@ from app.extensions import db
 
 # Normalize category strings by splitting on slashes and commas
 def normalize_categories(raw_categories):
-    flat = []
+    flat = set()
     for cat in raw_categories:
         if not cat:
             continue
-        # Split by "/" and ",", then strip whitespace
+        # Split by slashes and commas, then strip whitespace
         parts = re.split(r"[\/,]", cat)
-        flat.extend([p.strip() for p in parts if p.strip()])
-    return flat
+        for part in parts:
+            cleaned = part.strip()
+            if cleaned:
+                flat.add(cleaned)
+    return list(flat)
+
 
 import html
 import re
