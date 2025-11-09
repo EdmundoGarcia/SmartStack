@@ -7,10 +7,7 @@
   <button @click="open = true" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">Vista rápida</button>
 
   <template x-if="open">
-    <div
-      @click.self="open = false"
-      class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
-    >
+    <div @click.self="open = false" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
       <div class="bg-white dark:bg-slate-800 rounded-lg shadow-lg max-w-md w-full p-6 relative overflow-y-auto max-h-[90vh]">
         <!-- Close button -->
         <button @click="open = false" class="absolute top-2 right-2 text-gray-500 hover:text-red-500">
@@ -33,7 +30,7 @@
         </h3>
 
         <!-- Details -->
-        <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Autor: {{ book.authors_list | join(', ') }}
+        <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Autor: {{ authors | join(', ') }}</p>
         <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Idioma: {{ book.language }}</p>
         <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Editorial: {{ book.publisher or 'N/A' }}</p>
         <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">ISBN: {{ book.isbn or 'N/A' }}</p>
@@ -43,47 +40,57 @@
         {% endif %}
 
         <div class="mt-4 flex justify-between items-center">
-          <!-- Biblioteca -->
-          {% if library_ids is defined and book.google_id in library_ids %}
-            <span class="text-green-600" title="Ya en biblioteca">
-              <i class="fas fa-bookmark fa-lg"></i>
-            </span>
-          {% else %}
-            <form method="POST" action="{{ url_for('books.add_to_library') }}">
-              <input type="hidden" name="book_id" value="{{ book.google_id }}">
-              <input type="hidden" name="title" value="{{ book.title }}">
-              <input type="hidden" name="authors" value="{{ authors | join(', ') }}">
-              <input type="hidden" name="language" value="{{ book.language }}">
-              <input type="hidden" name="thumbnail" value="{{ book.thumbnail }}">
-              <input type="hidden" name="isbn" value="{{ book.isbn }}">
-              <input type="hidden" name="categories" value="{{ categories | join(', ') }}">
-              <input type="hidden" name="submitted" value="{{ range(1000000)|random }}">
-              <button type="submit" class="text-green-600 hover:scale-110 transition" title="Agregar a biblioteca">
-                <i class="far fa-bookmark fa-lg"></i>
-              </button>
-            </form>
+          <!-- Biblioteca toggle -->
+          {% set confirm_library = '' %}
+          {% if wishlist_ids is defined and book.google_id in wishlist_ids and (library_ids is not defined or book.google_id not in library_ids) %}
+            {% set confirm_library = '¿Mover este libro de tu wishlist a tu biblioteca?' %}
+          {% elif library_ids is defined and book.google_id in library_ids %}
+            {% set confirm_library = '¿Eliminar este libro de tu biblioteca?' %}
           {% endif %}
 
-          <!-- Wishlist -->
+          <form method="POST" action="{{ url_for('books.toggle_library') }}"
+                {% if confirm_library %}onsubmit="return confirm('{{ confirm_library }}')" {% endif %}>
+            <input type="hidden" name="book_id" value="{{ book.google_id }}">
+            <input type="hidden" name="title" value="{{ book.title }}">
+            <input type="hidden" name="authors" value="{{ authors | join(', ') }}">
+            <input type="hidden" name="language" value="{{ book.language }}">
+            <input type="hidden" name="thumbnail" value="{{ book.thumbnail }}">
+            <input type="hidden" name="isbn" value="{{ book.isbn }}">
+            <input type="hidden" name="categories" value="{{ categories | join(', ') }}">
+            <input type="hidden" name="submitted" value="{{ range(1000000)|random }}">
+            <button type="submit" class="hover:scale-110 transition" title="Biblioteca">
+              {% if library_ids is defined and book.google_id in library_ids %}
+                <i class="fas fa-bookmark fa-lg text-green-600"></i>
+              {% else %}
+                <i class="far fa-bookmark fa-lg text-gray-500"></i>
+              {% endif %}
+            </button>
+          </form>
+
+          <!-- Wishlist toggle -->
+          {% set confirm_wishlist = '' %}
           {% if wishlist_ids is defined and book.google_id in wishlist_ids %}
-            <span class="text-red-500" title="Ya en wishlist">
-              <i class="fas fa-heart fa-lg"></i>
-            </span>
-          {% else %}
-            <form method="POST" action="{{ url_for('books.add_to_wishlist') }}">
-              <input type="hidden" name="book_id" value="{{ book.google_id }}">
-              <input type="hidden" name="title" value="{{ book.title }}">
-              <input type="hidden" name="authors" value="{{ authors | join(', ') }}">
-              <input type="hidden" name="language" value="{{ book.language }}">
-              <input type="hidden" name="thumbnail" value="{{ book.thumbnail }}">
-              <input type="hidden" name="isbn" value="{{ book.isbn }}">
-              <input type="hidden" name="categories" value="{{ categories | join(', ') }}">
-              <input type="hidden" name="submitted" value="{{ range(1000000)|random }}">
-              <button type="submit" class="text-red-500 hover:scale-110 transition" title="Agregar a wishlist">
-                <i class="far fa-heart fa-lg"></i>
-              </button>
-            </form>
+            {% set confirm_wishlist = '¿Eliminar este libro de tu wishlist?' %}
           {% endif %}
+
+          <form method="POST" action="{{ url_for('books.toggle_wishlist') }}"
+                {% if confirm_wishlist %}onsubmit="return confirm('{{ confirm_wishlist }}')" {% endif %}>
+            <input type="hidden" name="book_id" value="{{ book.google_id }}">
+            <input type="hidden" name="title" value="{{ book.title }}">
+            <input type="hidden" name="authors" value="{{ authors | join(', ') }}">
+            <input type="hidden" name="language" value="{{ book.language }}">
+            <input type="hidden" name="thumbnail" value="{{ book.thumbnail }}">
+            <input type="hidden" name="isbn" value="{{ book.isbn }}">
+            <input type="hidden" name="categories" value="{{ categories | join(', ') }}">
+            <input type="hidden" name="submitted" value="{{ range(1000000)|random }}">
+            <button type="submit" class="hover:scale-110 transition" title="Wishlist">
+              {% if wishlist_ids is defined and book.google_id in wishlist_ids %}
+                <i class="fas fa-heart fa-lg text-red-500"></i>
+              {% else %}
+                <i class="far fa-heart fa-lg text-gray-500"></i>
+              {% endif %}
+            </button>
+          </form>
         </div>
       </div>
     </div>

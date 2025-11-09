@@ -25,7 +25,7 @@
 {% set has_purchase_options = amazon_link or gandhi_link or porrua_link or gonvill_link or buscalibre_link %}
 
 {% macro action_form(action, is_active, icon_active, icon_inactive, text_active, text_inactive, color, is_desktop) %}
-<form method="POST" action="{{ url_for('books.add_to_' + action) }}">
+<form method="POST" action="{{ url_for('books.toggle_' + action) }}">
   <input type="hidden" name="book_id" value="{{ book_id }}" />
   <input type="hidden" name="title" value="{{ t }}" />
   <input type="hidden" name="authors" value="{{ a }}" />

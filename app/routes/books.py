@@ -43,19 +43,13 @@ def dashboard():
 def search_books():
     import re
 
-    def is_incomplete(volume):
-        return not volume.get("title") or not volume.get("authors")
-
     def get_book_id_by_isbn(isbn):
+        """Fetch book ID directly from Google Books using ISBN."""
         api_key = current_app.config["GOOGLE_BOOKS_API_KEY"]
         params = {"q": f"isbn:{isbn}", "maxResults": 1, "key": api_key}
         try:
-            response = requests.get(
-                "https://www.googleapis.com/books/v1/volumes", params=params, timeout=5
-            )
-            items = (
-                response.json().get("items", []) if response.status_code == 200 else []
-            )
+            response = requests.get("https://www.googleapis.com/books/v1/volumes", params=params, timeout=5)
+            items = response.json().get("items", []) if response.status_code == 200 else []
             return items[0]["id"] if items else None
         except requests.RequestException:
             return None
@@ -63,7 +57,7 @@ def search_books():
     query = request.args.get("q", "").strip()
     lang_filters = request.args.getlist("lang") or ["es", "en"]
     author_filter = request.args.get("author", "").strip()
-    publisher = request.args.get("publisher", "").strip()
+    publisher_filter = request.args.get("publisher", "").strip()
     order_by = request.args.get("order", "relevance")
     page = int(request.args.get("page", 1))
 
@@ -72,46 +66,47 @@ def search_books():
     MAX_CACHE_SIZE = 200
     start_index = (page - 1) * RESULTS_PER_PAGE
 
-    # Cache cleanup
+    # Clear cache if oversized
     if len(session.get("search_cache", {})) > MAX_CACHE_SIZE:
         session["search_cache"].clear()
         session["query_cache"] = {}
 
-    if not query and not author_filter and not publisher:
-        flash(
-            "Ingresa una palabra clave, autor o editorial para buscar libros.",
-            "warning",
-        )
-        return render_template(
-            "books/search.html", results=[], page=page, total_pages=0
-        )
+    # Require at least one filter to proceed
+    if not query and not author_filter and not publisher_filter:
+        flash("Ingresa una palabra clave, autor o editorial para buscar libros.", "warning")
+        return render_template("books/search.html", results=[], page=page, total_pages=0)
 
-    # Si el query es un ISBN válido, redirige al detalle
+    # Redirect if query is a valid ISBN
     if re.fullmatch(r"97[89]\d{10}", query):
         book_id = get_book_id_by_isbn(query)
         if book_id:
             return redirect(url_for("books.book_detail", google_id=book_id))
         else:
             flash(f"No se encontró ningún libro con ISBN {query}.", "warning")
-            return render_template(
-                "books/search.html", results=[], page=page, total_pages=0
-            )
+            return render_template("books/search.html", results=[], page=page, total_pages=0)
 
-    q = query or ""
-    if author_filter and not query:
-        q = f"inauthor:{author_filter}"
-    if publisher:
-        q += f"+inpublisher:{publisher}"
+    # Build query string for Google Books API
+    q_parts = []
+    if query:
+        q_parts.append(query)
+    if author_filter:
+        q_parts.append(f"inauthor:{author_filter}")
+    if publisher_filter:
+        q_parts.append(f"inpublisher:{publisher_filter}")
+    q = " ".join(q_parts)
 
-    cache_key = f"{q}|{publisher}|{order_by}|{','.join(lang_filters)}|page:{page}"
+    # Google Books only accepts one language in langRestrict
+    lang_restrict = lang_filters[0] if len(lang_filters) == 1 else None
+
+    # Build cache key
+    cache_key = f"{q}|{order_by}|{','.join(lang_filters)}|page:{page}"
     query_cache = session.setdefault("query_cache", {})
 
     if cache_key in query_cache:
-        current_app.logger.info(
-            f"[CACHE HIT] Página {page} recuperada de caché para: {cache_key}"
-        )
+        current_app.logger.info(f"[CACHE HIT] Página {page} recuperada de caché para: {cache_key}")
         filtered = query_cache[cache_key]
     else:
+        # Prepare API request
         api_key = current_app.config["GOOGLE_BOOKS_API_KEY"]
         params = {
             "q": q,
@@ -119,36 +114,28 @@ def search_books():
             "startIndex": start_index,
             "orderBy": order_by,
             "key": api_key,
-            "langRestrict": ",".join(lang_filters),
         }
+        if lang_restrict:
+            params["langRestrict"] = lang_restrict
 
+        # Fetch results from Google Books
         try:
-            response = requests.get(
-                "https://www.googleapis.com/books/v1/volumes", params=params, timeout=5
-            )
-            raw_results = (
-                response.json().get("items", []) if response.status_code == 200 else []
-            )
+            response = requests.get("https://www.googleapis.com/books/v1/volumes", params=params, timeout=5)
+            raw_results = response.json().get("items", []) if response.status_code == 200 else []
         except requests.RequestException:
             flash("Error de conexión con Google Books API.", "error")
-            return render_template(
-                "books/search.html", results=[], page=page, total_pages=0
-            )
+            return render_template("books/search.html", results=[], page=page, total_pages=0)
 
+        # Filter and normalize results
         filtered = []
         for item in raw_results:
             volume = item.get("volumeInfo", {})
-            if is_incomplete(volume):
+            if not volume.get("title") or not volume.get("authors"):
                 continue
-            if author_filter:
-                author_lower = author_filter.lower()
-                if not any(
-                    author_lower in a.lower() for a in volume.get("authors", [])
-                ):
-                    continue
+
             lang = volume.get("language", "")
             if lang not in lang_filters:
-                continue
+                continue  # Manual language filter fallback
 
             session.setdefault("search_cache", {})[item["id"]] = {
                 "google_id": item["id"],
@@ -175,16 +162,14 @@ def search_books():
 
         query_cache[cache_key] = filtered
 
+    # Pagination and result prep
     total_items = len(filtered)
     total_pages = min(4, math.ceil(MAX_RESULTS / RESULTS_PER_PAGE))
     results = filtered
 
-    wishlist_ids = [
-        book.google_id for book in getattr(current_user.wishlist, "books", [])
-    ]
-    library_ids = [
-        book.google_id for book in getattr(current_user.library, "books", [])
-    ]
+    # User library and wishlist IDs
+    wishlist_ids = [book.google_id for book in getattr(current_user.wishlist, "books", [])]
+    library_ids = [book.google_id for book in getattr(current_user.library, "books", [])]
 
     return render_template(
         "books/search.html",
@@ -194,40 +179,41 @@ def search_books():
         query=query,
         lang_filters=lang_filters,
         author=author_filter,
-        publisher=publisher,
+        publisher=publisher_filter,
         order_by=order_by,
         wishlist_ids=wishlist_ids,
         library_ids=library_ids,
         total_items=total_items,
+        per_page=RESULTS_PER_PAGE,
         search_cache=session.get("search_cache", {}),
     )
 
 
-@books_bp.route("/add_to_library", methods=["POST"])
+
+@books_bp.route("/toggle_library", methods=["POST"])
 @login_required
-def add_to_library():
+def toggle_library():
     google_id = request.form.get("book_id", "").strip()
     title = request.form.get("title", "").strip()
     authors_raw = request.form.get("authors", "").strip()
     thumbnail = request.form.get("thumbnail", "").strip()
     language = request.form.get("language", "").strip().lower()
     isbn = request.form.get("isbn", "").strip()
+    submitted = request.form.get("submitted")
 
     authors = [a.strip() for a in authors_raw.split(",") if a.strip()]
-
     if not google_id or not title or not authors:
-        flash("❌ Faltan datos esenciales para agregar el libro.", "error")
+        flash("❌ Faltan datos esenciales para procesar el libro.", "error")
         return redirect(request.referrer or url_for("books.search_books"))
 
-    if request.form.get("submitted") == session.get("last_submission"):
+    if submitted == session.get("last_submission"):
         flash("⚠️ Ya procesamos esta acción. Evita enviar el formulario dos veces.", "warning")
         return redirect(request.referrer or url_for("books.search_books"))
-    session["last_submission"] = request.form.get("submitted")
+    session["last_submission"] = submitted
 
     book = get_or_create_book(google_id, title, authors, thumbnail, language, isbn)
     if not book:
-        flash("❌ No se pudo agregar el libro a la biblioteca.", "error")
-        current_app.logger.warning(f"[LIBRARY] Falló get_or_create_book para {google_id}")
+        flash("❌ No se pudo procesar el libro.", "error")
         return redirect(request.referrer or url_for("books.search_books"))
 
     if not current_user.library:
@@ -235,103 +221,55 @@ def add_to_library():
         db.session.commit()
 
     library = current_user.library
-    existing = LibraryBook.query.filter_by(library_id=library.id, book_id=book.id).first()
-    was_in_wishlist = current_user.wishlist and any(b.id == book.id for b in current_user.wishlist.books)
+    link = LibraryBook.query.filter_by(library_id=library.id, book_id=book.id).first()
 
-    if not existing:
-        lb = LibraryBook(library_id=library.id, book_id=book.id)
-        db.session.add(lb)
-        flash(f'📚 "{title}" fue añadido a tu biblioteca.', "success")
+    if link:
+        db.session.delete(link)
+        flash(f'📚 "{title}" fue eliminado de tu biblioteca.', "info")
     else:
-        flash(f'⚠️ "{title}" ya está en tu biblioteca.', "info")
+        db.session.add(LibraryBook(library_id=library.id, book_id=book.id))
+        flash(f'📌 "{title}" fue añadido a tu biblioteca.', "success")
 
-    if was_in_wishlist:
-        wb = WishlistBook.query.filter_by(wishlist_id=current_user.wishlist.id, book_id=book.id).first()
-        if wb:
-            db.session.delete(wb)
-            flash(f'📚 "{title}" fue movido de tu wishlist a la biblioteca.', "success")
+        #If the book was on library, it gets deleted
+        if current_user.wishlist:
+            wb = WishlistBook.query.filter_by(wishlist_id=current_user.wishlist.id, book_id=book.id).first()
+            if wb:
+                db.session.delete(wb)
+                flash(f'📚 "{title}" fue movido de tu wishlist a la biblioteca.', "success")
 
     db.session.commit()
-    current_app.logger.info(f"[LIBRARY] Usuario {current_user.id} agregó {title} ({google_id})")
     return redirect(request.referrer or url_for("books.search_books"))
 
-
-
-@books_bp.route("/remove_from_library", methods=["POST"])
+@books_bp.route("/toggle_wishlist", methods=["POST"])
 @login_required
-def remove_from_library():
-    book_id = request.form.get("book_id", "").strip()
-    if not book_id:
-        flash("❌ No se especificó el libro a eliminar.", "error")
-        return redirect(url_for("books.view_library"))
-
-    book = Book.query.filter_by(google_id=book_id).first()
-    if not book:
-        flash("❌ El libro no existe.", "error")
-        return redirect(url_for("books.view_library"))
-
-    if current_user.library:
-        link = LibraryBook.query.filter_by(
-            library_id=current_user.library.id,
-            book_id=book.id
-        ).first()
-
-        if link:
-            db.session.delete(link)
-            db.session.commit()
-            flash(f'"{book.title}" fue eliminado de tu biblioteca.', "success")
-            current_app.logger.info(f"[LIBRARY] Usuario {current_user.id} eliminó {book.title}")
-        else:
-            flash("⚠️ Ese libro no está en tu biblioteca.", "warning")
-    else:
-        flash("⚠️ No tienes una biblioteca activa.", "warning")
-
-    return redirect(url_for("books.view_library"))
-
-
-
-@books_bp.route("/add_to_wishlist", methods=["POST"])
-@login_required
-def add_to_wishlist():
+def toggle_wishlist():
     google_id = request.form.get("book_id", "").strip()
     title = request.form.get("title", "").strip()
     authors = request.form.get("authors", "").strip()
     thumbnail = request.form.get("thumbnail", "").strip()
     language = request.form.get("language", "").strip().lower()
     isbn = request.form.get("isbn", "").strip()
+    submitted = request.form.get("submitted")
 
     if not google_id or not title or not authors:
-        flash("❌ Faltan datos esenciales para agregar el libro.", "error")
+        flash("❌ Faltan datos esenciales para procesar el libro.", "error")
         return redirect(request.referrer or url_for("books.search_books"))
 
-    # Prevent double submission
-    if request.form.get("submitted") == session.get("last_submission"):
-        flash(
-            "⚠️ Ya procesamos esta acción. Evita enviar el formulario dos veces.",
-            "warning",
-        )
+    if submitted == session.get("last_submission"):
+        flash("⚠️ Ya procesamos esta acción. Evita enviar el formulario dos veces.", "warning")
         return redirect(request.referrer or url_for("books.search_books"))
-    session["last_submission"] = request.form.get("submitted")
+    session["last_submission"] = submitted
 
     book = get_or_create_book(google_id, title, authors, thumbnail, language, isbn)
     if not book:
-        flash("❌ No se pudo agregar el libro a la wishlist.", "error")
-        current_app.logger.warning(
-            f"[WISHLIST] Falló get_or_create_book para {google_id}"
-        )
+        flash("❌ No se pudo procesar el libro.", "error")
         return redirect(request.referrer or url_for("books.search_books"))
 
-    # Verify if the book is already on user's library
-    if current_user.library and any(
-        b.id == book.id for b in current_user.library.books
-    ):
-        flash(
-            f'📚 "{title}" ya está en tu biblioteca. No se puede agregar a la wishlist.',
-            "info",
-        )
+    #If the book is already on library, we don't let it be added to wishlist.
+    if current_user.library and any(b.id == book.id for b in current_user.library.books):
+        flash(f'📚 "{title}" ya está en tu biblioteca. No se puede agregar a la wishlist.', "info")
         return redirect(request.referrer or url_for("books.search_books"))
 
-    # Create wishlist if it doesn't exist
     if not current_user.wishlist:
         wishlist = Wishlist(user=current_user)
         db.session.add(wishlist)
@@ -339,53 +277,17 @@ def add_to_wishlist():
     else:
         wishlist = current_user.wishlist
 
-    # Verify if the book is already on the user's wishlist
-    already_in_wishlist = any(wb.book_id == book.id for wb in wishlist.wishlist_books)
-
-    if not already_in_wishlist:
-        wb = WishlistBook(
-            wishlist_id=wishlist.id, book_id=book.id, added_at=datetime.utcnow()
-        )
-        db.session.add(wb)
-        flash(f'📌 "{title}" fue añadido a tu wishlist.', "success")
-    else:
-        flash(f'⚠️ "{title}" ya está en tu wishlist.', "info")
-
-    db.session.commit()
-    current_app.logger.info(f"[WISHLIST] Usuario {current_user.id} agregó {title}")
-    return redirect(request.referrer or url_for("books.search_books"))
-
-
-@books_bp.route("/remove_from_wishlist", methods=["POST"])
-@login_required
-def remove_from_wishlist():
-    book_id = request.form.get("book_id", "").strip()
-    if not book_id:
-        flash("❌ No se especificó el libro a eliminar.", "error")
-        return redirect(url_for("books.view_wishlist"))
-
-    book = Book.query.filter_by(google_id=book_id).first()
-    if not book:
-        flash("❌ El libro no existe.", "error")
-        return redirect(url_for("books.view_wishlist"))
-
-    wishlist = current_user.wishlist
-    if not wishlist:
-        flash("⚠️ No tienes una wishlist activa.", "warning")
-        return redirect(url_for("books.view_wishlist"))
-
     wb = WishlistBook.query.filter_by(wishlist_id=wishlist.id, book_id=book.id).first()
-    if not wb:
-        flash("⚠️ Ese libro no está en tu wishlist.", "info")
-        return redirect(url_for("books.view_wishlist"))
 
-    db.session.delete(wb)
+    if wb:
+        db.session.delete(wb)
+        flash(f'📌 "{title}" fue eliminado de tu wishlist.', "info")
+    else:
+        db.session.add(WishlistBook(wishlist_id=wishlist.id, book_id=book.id, added_at=datetime.utcnow()))
+        flash(f'📌 "{title}" fue añadido a tu wishlist.', "success")
+
     db.session.commit()
-    flash(f'"{book.title}" fue eliminado de tu wishlist.', "success")
-    current_app.logger.info(
-        f"[WISHLIST] Usuario {current_user.id} eliminó {book.title}"
-    )
-    return redirect(url_for("books.view_wishlist"))
+    return redirect(request.referrer or url_for("books.search_books"))
 
 
 @books_bp.route("/wishlist")
@@ -757,7 +659,6 @@ def book_detail(google_id):
         gonvill_link=gonvill_link,
         buscalibre_link=buscalibre_link,
     )
-
 
 
 @books_bp.route("/recommendations")

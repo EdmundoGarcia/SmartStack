@@ -3,115 +3,121 @@
 {% block content %}
 <div class="container mx-auto px-4 py-6 text-center">
   <h1 class="text-2xl font-semibold mb-6">Recomendaciones personalizadas</h1>
+  {% include "components/alert.html" %}
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% set color_map = {
-        'success': 'green',
-        'warning': 'yellow',
-        'error': 'red',
-        'info': 'blue'
-      } %}
-      <div class="space-y-2 mb-4">
-        {% for category, message in messages %}
-          <div class="px-4 py-2 rounded text-sm bg-{{ color_map.get(category, 'gray') }}-100 text-{{ color_map.get(category, 'gray') }}-800">
-            {{ message }}
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
+  {% if user_categories|length < 3 %}
+    <div class="bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 p-4 rounded text-sm max-w-xl mx-auto">
+      Agrega al menos <strong>3 libros</strong> a tu biblioteca para recibir recomendaciones.
+    </div>
+  {% else %}
+    <style>
+      .chip input[type="radio"]:checked + span {
+        background-color: #2563eb;
+        color: white;
+        border-color: #2563eb;
+      }
+    </style>
 
-  <style>
-    .chip input[type="radio"]:checked + span {
-      background-color: #2563eb;
-      color: white;
-      border-color: #2563eb;
-    }
-  </style>
-
-  <div class="flex flex-wrap justify-center gap-2 mb-4" id="category-chips">
-    {% for cat in user_categories %}
+    <div class="flex flex-wrap justify-center gap-2 mb-4" id="category-chips">
+      {% for cat in user_categories %}
       <label class="chip cursor-pointer">
-        <input type="radio" name="selected_category" value="{{ cat }}" class="hidden" />
-        <span class="px-3 py-1 rounded-full border text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-white hover:bg-blue-100 dark:hover:bg-blue-700 transition">
+        <input
+          type="radio"
+          name="selected_category"
+          value="{{ cat }}"
+          class="hidden"
+        />
+        <span
+          class="px-3 py-1 rounded-full border text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-white hover:bg-blue-100 dark:hover:bg-blue-700 transition"
+        >
           {{ cat }}
         </span>
       </label>
-    {% endfor %}
-  </div>
+      {% endfor %}
+    </div>
 
-  <button onclick="fetchRecommendationsWithFilters()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4">
-    Mostrar recomendaciones
-  </button>
+    <button
+      onclick="fetchRecommendationsWithFilters()"
+      class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4"
+    >
+      Mostrar recomendaciones
+    </button>
 
-  <div id="loader" class="hidden text-gray-500 dark:text-gray-300 text-sm mb-4">
-    Cargando recomendaciones...
-  </div>
+    <div id="loader" class="hidden text-gray-500 dark:text-gray-300 text-sm mb-4">
+      Cargando recomendaciones...
+    </div>
 
-  <div id="recommendations" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
+    <div
+      id="recommendations"
+      class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
+    ></div>
+  {% endif %}
 
-<script>
-  const ROUTES = {
-    addToLibrary: "{{ url_for('books.add_to_library') }}",
-    addToWishlist: "{{ url_for('books.add_to_wishlist') }}"
-  };
+  <script>
+    ROUTES = {
+      toggleLibrary: "{{ url_for('books.toggle_library') }}",
+      toggleWishlist: "{{ url_for('books.toggle_wishlist') }}",
+    };
 
-  function submitForm(route, data) {
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = route;
+    function submitForm(route, data) {
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = route;
 
-    for (const key in data) {
-      const input = document.createElement("input");
-      input.type = "hidden";
-      input.name = key;
-      input.value = String(data[key] || "");
-      form.appendChild(input);
+      for (const key in data) {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = String(data[key] || "");
+        form.appendChild(input);
+      }
+
+      document.body.appendChild(form);
+      form.submit();
     }
 
-    document.body.appendChild(form);
-    form.submit();
-  }
-
-  function fetchRecommendationsWithFilters() {
-    const selectedCategory = document.querySelector('input[name="selected_category"]:checked')?.value;
-    const params = new URLSearchParams();
-    if (selectedCategory) {
-      params.append("selected_category", selectedCategory);
-    } else {
-      document.getElementById("recommendations").innerHTML = `
+    function fetchRecommendationsWithFilters() {
+      const selectedCategory = document.querySelector(
+        'input[name="selected_category"]:checked'
+      )?.value;
+      const params = new URLSearchParams();
+      if (selectedCategory) {
+        params.append("selected_category", selectedCategory);
+      } else {
+        document.getElementById("recommendations").innerHTML = `
         <div class="bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 p-4 rounded text-sm col-span-full">
           Selecciona una categoría para recibir recomendaciones.
         </div>
       `;
-      return;
-    }
+        return;
+      }
 
-    document.getElementById("loader").classList.remove("hidden");
-    fetch("/recommendations/fetch?" + params.toString())
-      .then((res) => res.json())
-      .then((data) => {
-        document.getElementById("loader").classList.add("hidden");
-        renderRecommendations(data);
-      })
-      .catch((err) => {
-        document.getElementById("loader").classList.add("hidden");
-        document.getElementById("recommendations").innerHTML = `
+      document.getElementById("loader").classList.remove("hidden");
+      fetch("/recommendations/fetch?" + params.toString())
+        .then((res) => res.json())
+        .then((data) => {
+          document.getElementById("loader").classList.add("hidden");
+          renderRecommendations(data);
+        })
+        .catch((err) => {
+          document.getElementById("loader").classList.add("hidden");
+          document.getElementById("recommendations").innerHTML = `
           <div class="bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 p-4 rounded text-sm col-span-full">
             Ocurrió un error al obtener recomendaciones. Intenta nuevamente.
           </div>
         `;
-        console.error("Error al obtener recomendaciones:", err);
-      });
-  }
+          console.error("Error al obtener recomendaciones:", err);
+        });
+    }
 
-  function renderBookCard(book) {
-    if (!book.google_id) return "";
+    function renderBookCard(book) {
+      if (!book.google_id) return "";
 
-    const categories = Array.isArray(book.categories) ? book.categories.join(", ") : (book.categories || "");
+      const categories = Array.isArray(book.categories)
+        ? book.categories.join(", ")
+        : book.categories || "";
 
-    return `
+      return `
       <div class="bg-white dark:bg-gray-900 shadow rounded-lg p-4 flex flex-col transition hover:shadow-xl">
         <a href="/book/${book.google_id}" class="block group">
           ${
@@ -127,13 +133,15 @@
             ${book.title}
           </h2>
         </a>
-        <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">${book.authors}</p>
+        <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">${
+          book.authors
+        }</p>
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
           Idioma: ${book.language} &nbsp;|&nbsp; Similitud: ${book.similarity}
         </p>
 
         <div class="flex justify-between mb-2">
-          <button onclick='submitForm("${ROUTES.addToLibrary}", {
+          <button onclick='submitForm("${ROUTES.toggleLibrary}", {
             book_id: "${book.google_id}",
             title: "${book.title}",
             authors: "${book.authors}",
@@ -146,7 +154,7 @@
             <i class="far fa-bookmark fa-lg"></i>
           </button>
 
-          <button onclick='submitForm("${ROUTES.addToWishlist}", {
+          <button onclick='submitForm("${ROUTES.toggleWishlist}", {
             book_id: "${book.google_id}",
             title: "${book.title}",
             authors: "${book.authors}",
@@ -163,10 +171,10 @@
         ${renderQuickView(book)}
       </div>
     `;
-  }
+    }
 
-  function renderQuickView(book) {
-    return `
+    function renderQuickView(book) {
+      return `
       <div x-data="{
         open: false,
         toggleScroll(value) {
@@ -189,18 +197,28 @@
               }
 
               <h3 class="text-xl font-bold mb-2 text-gray-800 dark:text-white">
-                <a href="/book/${book.google_id}" class="hover:underline text-blue-700 dark:text-blue-400">${book.title}</a>
+                <a href="/book/${
+                  book.google_id
+                }" class="hover:underline text-blue-700 dark:text-blue-400">${
+        book.title
+      }</a>
               </h3>
 
-              <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Autor: ${book.authors}</p>
-              <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Idioma: ${book.language}</p>
-              <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">ISBN: ${book.isbn || "N/A"}</p>
+              <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Autor: ${
+                book.authors
+              }</p>
+              <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Idioma: ${
+                book.language
+              }</p>
+              <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">ISBN: ${
+                book.isbn || "N/A"
+              }</p>
 
                             ${
-                book.description
-                  ? `<p class="text-sm text-gray-700 dark:text-gray-400 mt-2 whitespace-pre-line">${book.description}</p>`
-                  : ""
-              }
+                              book.description
+                                ? `<p class="text-sm text-gray-700 dark:text-gray-400 mt-2 whitespace-pre-line">${book.description}</p>`
+                                : ""
+                            }
 
               <div class="mt-4 text-sm text-gray-500 dark:text-gray-400 italic">
                 Puedes agregar este libro desde la tarjeta principal.
@@ -210,37 +228,39 @@
         </template>
       </div>
     `;
-  }
+    }
 
-  function renderRecommendations(data) {
-    const container = document.getElementById("recommendations");
-    container.innerHTML = "";
+    function renderRecommendations(data) {
+      const container = document.getElementById("recommendations");
+      container.innerHTML = "";
 
-    if (data.books && data.books.length > 0) {
-      const threshold = 0.3;
-      const highSimilarityBooks = data.books.filter(book => book.similarity >= threshold);
-      const lowSimilarity = highSimilarityBooks.length === 0;
-      const booksToShow = lowSimilarity ? data.books : highSimilarityBooks;
+      if (data.books && data.books.length > 0) {
+        const threshold = 0.3;
+        const highSimilarityBooks = data.books.filter(
+          (book) => book.similarity >= threshold
+        );
+        const lowSimilarity = highSimilarityBooks.length === 0;
+        const booksToShow = lowSimilarity ? data.books : highSimilarityBooks;
 
-      if (lowSimilarity) {
-        container.innerHTML += `
+        if (lowSimilarity) {
+          container.innerHTML += `
           <div class="col-span-full text-sm text-gray-600 dark:text-gray-300 mb-4">
             Mostrando libros con similitud parcial a tu perfil. Puedes afinar las recomendaciones agregando más libros o explorando nuevos géneros.
           </div>
         `;
-      }
+        }
 
-      booksToShow.forEach(book => {
-        container.innerHTML += renderBookCard(book);
-      });
-    } else {
-      container.innerHTML = `
+        booksToShow.forEach((book) => {
+          container.innerHTML += renderBookCard(book);
+        });
+      } else {
+        container.innerHTML = `
         <div class="bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 p-4 rounded text-sm col-span-full">
           No se encontraron recomendaciones relevantes en este momento. Intenta más tarde o agrega más libros a tu biblioteca.
         </div>
       `;
+      }
     }
-  }
-</script>
+  </script>
 </div>
 {% endblock %}

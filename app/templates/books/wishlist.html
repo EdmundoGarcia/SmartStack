@@ -1,39 +1,49 @@
-{% extends "layouts/base_user.html" %}
-{% block title %}Mi Wishlist - SmartStack{% endblock %}
-{% block user_content %}
+{% extends "layouts/base_user.html" %} {% block title %}Mi Wishlist -
+SmartStack{% endblock %} {% block user_content %}
 
-<h2 class="text-2xl font-bold mb-4 text-gray-800 dark:text-white">Libros en tu wishlist</h2>
+<h2 class="text-2xl font-bold mb-4 text-gray-800 dark:text-white">
+  Libros en tu wishlist
+</h2>
 
 {% if not is_empty %}
-  <form id="wishlist-search-form" class="mb-4 flex flex-wrap gap-2 items-center">
-    <input
-      type="text"
-      name="search"
-      placeholder="Buscar por título o autor"
-      class="flex-grow px-3 py-2 border rounded-md dark:bg-slate-700 dark:text-white"
-    />
-    <select name="sort" class="px-2 py-2 border rounded-md dark:bg-slate-700 dark:text-white">
-      <option value="recent">Más recientes</option>
-      <option value="oldest">Primeros agregados</option>
-      <option value="title_asc">Título A-Z</option>
-      <option value="title_desc">Título Z-A</option>
-    </select>
-  </form>
+<form id="wishlist-search-form" class="mb-4 flex flex-wrap gap-2 items-center">
+  <input
+    type="text"
+    name="search"
+    placeholder="Buscar por título o autor"
+    class="flex-grow px-3 py-2 border rounded-md dark:bg-slate-700 dark:text-white"
+  />
+  <select
+    name="sort"
+    class="px-2 py-2 border rounded-md dark:bg-slate-700 dark:text-white"
+  >
+    <option value="recent">Más recientes</option>
+    <option value="oldest">Primeros agregados</option>
+    <option value="title_asc">Título A-Z</option>
+    <option value="title_desc">Título Z-A</option>
+  </select>
+</form>
 
-  <p id="wishlist-counter" class="text-sm text-gray-600 dark:text-gray-300 mb-2"></p>
+<p
+  id="wishlist-counter"
+  class="text-sm text-gray-600 dark:text-gray-300 mb-2"
+></p>
 
-  <div id="books-wrapper" data-total="{{ total }}" data-page="{{ page }}" data-per-page="{{ per_page }}">
-    <div id="books-grid"></div>
-    <div id="books-pagination"></div>
-  </div>
+<div
+  id="books-wrapper"
+  data-total="{{ total }}"
+  data-page="{{ page }}"
+  data-per-page="{{ per_page }}"
+>
+  <div id="books-grid"></div>
+  <div id="books-pagination"></div>
+</div>
 {% else %}
-  <div class="text-center py-12 text-gray-600 dark:text-gray-300">
-    <p class="text-lg mb-2">Tu wishlist está vacía por ahora.</p>
-    <p>Agrega libros desde la búsqueda o recomendaciones para comenzar.</p>
-  </div>
-{% endif %}
-
-{% if not is_empty %}
+<div class="text-center py-12 text-gray-600 dark:text-gray-300">
+  <p class="text-lg mb-2">Tu wishlist está vacía por ahora.</p>
+  <p>Agrega libros desde la búsqueda o recomendaciones para comenzar.</p>
+</div>
+{% endif %} {% if not is_empty %}
 <script>
   const form = document.getElementById("wishlist-search-form");
   const searchInput = form.querySelector('input[name="search"]');
@@ -51,9 +61,13 @@
     const sort = sortSelect.value;
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      fetch(`/wishlist/search?search=${encodeURIComponent(query)}&sort=${sort}&page=${currentPage}`)
-        .then(res => res.text())
-        .then(html => {
+      fetch(
+        `/wishlist/search?search=${encodeURIComponent(
+          query
+        )}&sort=${sort}&page=${currentPage}`
+      )
+        .then((res) => res.text())
+        .then((html) => {
           const temp = document.createElement("div");
           temp.innerHTML = html;
 
@@ -62,7 +76,8 @@
           const newWrapper = temp.querySelector("#books-wrapper");
 
           if (newGrid) gridContainer.innerHTML = newGrid.innerHTML;
-          if (newPagination) paginationContainer.innerHTML = newPagination.innerHTML;
+          if (newPagination)
+            paginationContainer.innerHTML = newPagination.innerHTML;
           if (newWrapper) {
             wrapper.dataset.total = newWrapper.dataset.total;
             wrapper.dataset.page = newWrapper.dataset.page;
@@ -112,5 +127,4 @@
     fetchWishlist();
   });
 </script>
-{% endif %}
-{% endblock %}
+{% endif %} {% endblock %}
