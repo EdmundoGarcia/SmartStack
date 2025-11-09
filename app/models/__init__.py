@@ -1,1 +1,1 @@
-from .models import User, Book, Wishlist, UserLibrary
+from .models import User, Book, Wishlist, UserLibrary, WishlistBook, LibraryBook

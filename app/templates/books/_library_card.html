@@ -1,0 +1,61 @@
+<div
+  class="library-card bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden flex flex-col transition hover:shadow-lg"
+>
+  <!-- Portada con enlace -->
+  <a
+    href="{{ url_for('books.book_detail', google_id=book.google_id) }}"
+    class="block"
+  >
+    {% if book.thumbnail %}
+    <img
+      src="{{ book.thumbnail }}"
+      alt="Portada"
+      class="w-full h-48 object-contain bg-gray-100 dark:bg-slate-700"
+    />
+    {% endif %}
+  </a>
+
+  <!-- Contenido -->
+  <div class="p-4 flex flex-col flex-grow">
+    <!-- Título con enlace -->
+    <h3
+      class="text-lg font-semibold text-gray-800 dark:text-white mb-1 leading-snug"
+    >
+      <a
+        href="{{ url_for('books.book_detail', google_id=book.google_id) }}"
+        class="hover:underline text-blue-700 dark:text-blue-400"
+      >
+        {{ book.title }}
+      </a>
+    </h3>
+
+    <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">
+      Autor: {{ book.authors_list | join(', ') }}
+    </p>
+
+    <!-- Acciones -->
+    <div
+      class="mt-auto flex justify-between items-center pt-2 border-t border-gray-200 dark:border-slate-700"
+    >
+      <!-- Vista rápida -->
+      {% include "components/quick_view_modal.html" %}
+
+      <!-- Eliminar de biblioteca -->
+      <form
+        method="POST"
+        action="{{ url_for('books.remove_from_library') }}"
+        onsubmit="return confirm('¿Eliminar este libro de tu biblioteca? Esta acción no se puede deshacer.')"
+      >
+        <input type="hidden" name="book_id" value="{{ book.google_id }}" />
+        <button
+          type="submit"
+          class="text-red-600 hover:text-red-700 transition"
+          title="Eliminar de biblioteca"
+          aria-label="Eliminar libro"
+        >
+          <i class="fas fa-circle-xmark fa-lg"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>

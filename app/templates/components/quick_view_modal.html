@@ -17,6 +17,9 @@
           <i class="fas fa-times"></i>
         </button>
 
+        {% set authors = book.authors_list %}
+        {% set categories = book.categories_list if book.categories_list is defined else (book.categories if book.categories is iterable and book.categories.__class__.__name__ != 'str' else (book.categories.split(',') if book.categories else [])) %}
+
         <!-- Cover -->
         {% if book.thumbnail %}
           <img src="{{ book.thumbnail }}" alt="Portada" class="w-full h-64 object-contain mb-4" />
@@ -24,13 +27,13 @@
 
         <!-- Title -->
         <h3 class="text-xl font-bold mb-2 text-gray-800 dark:text-white">
-          <a href="{{ url_for('books.book_detail', id=book.id) }}" class="hover:underline text-blue-700 dark:text-blue-400">
+          <a href="{{ url_for('books.book_detail', google_id=book.google_id) }}" class="hover:underline text-blue-700 dark:text-blue-400">
             {{ book.title }}
           </a>
         </h3>
 
         <!-- Details -->
-        <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Autor: {{ book.authors | join(', ') }}</p>
+        <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Autor: {{ book.authors_list | join(', ') }}
         <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Idioma: {{ book.language }}</p>
         <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Editorial: {{ book.publisher or 'N/A' }}</p>
         <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">ISBN: {{ book.isbn or 'N/A' }}</p>
@@ -39,44 +42,48 @@
           <p class="text-sm text-gray-700 dark:text-gray-400 mt-2 whitespace-pre-line">{{ book.description }}</p>
         {% endif %}
 
-        <div class="mt-4 flex justify-between">
-          <!-- Library -->
-          <form method="POST" action="{{ url_for('books.add_to_library') }}">
-            <input type="hidden" name="book_id" value="{{ book.id }}">
-            <input type="hidden" name="title" value="{{ book.title }}">
-            <input type="hidden" name="authors" value="{{ book.authors | join(', ') }}">
-            <input type="hidden" name="language" value="{{ book.language }}">
-            <input type="hidden" name="thumbnail" value="{{ book.thumbnail }}">
-            <input type="hidden" name="isbn" value="{{ book.isbn }}">
-            <input type="hidden" name="categories" value="{% if book.categories is iterable and book.categories is not string %}{{ book.categories | join(', ') }}{% else %}{{ book.categories }}{% endif %}">
-            <input type="hidden" name="submitted" value="{{ range(1000000)|random }}">
-            <button type="submit" class="text-primary hover:scale-110 transition" title="Agregar a biblioteca">
-              {% if library_ids and book.id in library_ids %}
-                <i class="fas fa-bookmark fa-lg"></i>
-              {% else %}
+        <div class="mt-4 flex justify-between items-center">
+          <!-- Biblioteca -->
+          {% if library_ids is defined and book.google_id in library_ids %}
+            <span class="text-green-600" title="Ya en biblioteca">
+              <i class="fas fa-bookmark fa-lg"></i>
+            </span>
+          {% else %}
+            <form method="POST" action="{{ url_for('books.add_to_library') }}">
+              <input type="hidden" name="book_id" value="{{ book.google_id }}">
+              <input type="hidden" name="title" value="{{ book.title }}">
+              <input type="hidden" name="authors" value="{{ authors | join(', ') }}">
+              <input type="hidden" name="language" value="{{ book.language }}">
+              <input type="hidden" name="thumbnail" value="{{ book.thumbnail }}">
+              <input type="hidden" name="isbn" value="{{ book.isbn }}">
+              <input type="hidden" name="categories" value="{{ categories | join(', ') }}">
+              <input type="hidden" name="submitted" value="{{ range(1000000)|random }}">
+              <button type="submit" class="text-green-600 hover:scale-110 transition" title="Agregar a biblioteca">
                 <i class="far fa-bookmark fa-lg"></i>
-              {% endif %}
-            </button>
-          </form>
+              </button>
+            </form>
+          {% endif %}
 
           <!-- Wishlist -->
-          <form method="POST" action="{{ url_for('books.add_to_wishlist') }}">
-            <input type="hidden" name="book_id" value="{{ book.id }}">
-            <input type="hidden" name="title" value="{{ book.title }}">
-            <input type="hidden" name="authors" value="{{ book.authors | join(', ') }}">
-            <input type="hidden" name="language" value="{{ book.language }}">
-            <input type="hidden" name="thumbnail" value="{{ book.thumbnail }}">
-            <input type="hidden" name="isbn" value="{{ book.isbn }}">
-            <input type="hidden" name="categories" value="{% if book.categories is iterable and book.categories is not string %}{{ book.categories | join(', ') }}{% else %}{{ book.categories }}{% endif %}">
-            <input type="hidden" name="submitted" value="{{ range(1000000)|random }}">
-            <button type="submit" class="text-red-500 hover:scale-110 transition" title="Agregar a wishlist">
-              {% if wishlist_ids and book.id in wishlist_ids %}
-                <i class="fas fa-heart fa-lg"></i>
-              {% else %}
+          {% if wishlist_ids is defined and book.google_id in wishlist_ids %}
+            <span class="text-red-500" title="Ya en wishlist">
+              <i class="fas fa-heart fa-lg"></i>
+            </span>
+          {% else %}
+            <form method="POST" action="{{ url_for('books.add_to_wishlist') }}">
+              <input type="hidden" name="book_id" value="{{ book.google_id }}">
+              <input type="hidden" name="title" value="{{ book.title }}">
+              <input type="hidden" name="authors" value="{{ authors | join(', ') }}">
+              <input type="hidden" name="language" value="{{ book.language }}">
+              <input type="hidden" name="thumbnail" value="{{ book.thumbnail }}">
+              <input type="hidden" name="isbn" value="{{ book.isbn }}">
+              <input type="hidden" name="categories" value="{{ categories | join(', ') }}">
+              <input type="hidden" name="submitted" value="{{ range(1000000)|random }}">
+              <button type="submit" class="text-red-500 hover:scale-110 transition" title="Agregar a wishlist">
                 <i class="far fa-heart fa-lg"></i>
-              {% endif %}
-            </button>
-          </form>
+              </button>
+            </form>
+          {% endif %}
         </div>
       </div>
     </div>

@@ -6,9 +6,15 @@
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
+      {% set color_map = {
+        'success': 'green',
+        'warning': 'yellow',
+        'error': 'red',
+        'info': 'blue'
+      } %}
       <div class="space-y-2 mb-4">
         {% for category, message in messages %}
-          <div class="px-4 py-2 rounded text-sm bg-{{ 'green' if category == 'success' else 'yellow' }}-100 text-{{ 'green' if category == 'success' else 'yellow' }}-800">
+          <div class="px-4 py-2 rounded text-sm bg-{{ color_map.get(category, 'gray') }}-100 text-{{ color_map.get(category, 'gray') }}-800">
             {{ message }}
           </div>
         {% endfor %}
@@ -44,6 +50,7 @@
   </div>
 
   <div id="recommendations" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
+
 <script>
   const ROUTES = {
     addToLibrary: "{{ url_for('books.add_to_library') }}",
@@ -59,7 +66,7 @@
       const input = document.createElement("input");
       input.type = "hidden";
       input.name = key;
-      input.value = data[key];
+      input.value = String(data[key] || "");
       form.appendChild(input);
     }
 
@@ -70,7 +77,16 @@
   function fetchRecommendationsWithFilters() {
     const selectedCategory = document.querySelector('input[name="selected_category"]:checked')?.value;
     const params = new URLSearchParams();
-    if (selectedCategory) params.append("selected_category", selectedCategory);
+    if (selectedCategory) {
+      params.append("selected_category", selectedCategory);
+    } else {
+      document.getElementById("recommendations").innerHTML = `
+        <div class="bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 p-4 rounded text-sm col-span-full">
+          Selecciona una categoría para recibir recomendaciones.
+        </div>
+      `;
+      return;
+    }
 
     document.getElementById("loader").classList.remove("hidden");
     fetch("/recommendations/fetch?" + params.toString())
@@ -93,6 +109,8 @@
   function renderBookCard(book) {
     if (!book.google_id) return "";
 
+    const categories = Array.isArray(book.categories) ? book.categories.join(", ") : (book.categories || "");
+
     return `
       <div class="bg-white dark:bg-gray-900 shadow rounded-lg p-4 flex flex-col transition hover:shadow-xl">
         <a href="/book/${book.google_id}" class="block group">
@@ -109,7 +127,7 @@
             ${book.title}
           </h2>
         </a>
-        <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">${book.author}</p>
+        <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">${book.authors}</p>
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
           Idioma: ${book.language} &nbsp;|&nbsp; Similitud: ${book.similarity}
         </p>
@@ -118,11 +136,11 @@
           <button onclick='submitForm("${ROUTES.addToLibrary}", {
             book_id: "${book.google_id}",
             title: "${book.title}",
-            authors: "${book.author}",
+            authors: "${book.authors}",
             language: "${book.language}",
             thumbnail: "${book.thumbnail || ""}",
             isbn: "${book.isbn || ""}",
-            categories: "${(book.categories || []).join(", ")}",
+            categories: "${categories}",
             submitted: "${Math.floor(Math.random() * 1000000)}"
           })' class="text-primary hover:scale-110 transition" title="Agregar a biblioteca">
             <i class="far fa-bookmark fa-lg"></i>
@@ -131,11 +149,11 @@
           <button onclick='submitForm("${ROUTES.addToWishlist}", {
             book_id: "${book.google_id}",
             title: "${book.title}",
-            authors: "${book.author}",
+            authors: "${book.authors}",
             language: "${book.language}",
             thumbnail: "${book.thumbnail || ""}",
             isbn: "${book.isbn || ""}",
-            categories: "${(book.categories || []).join(", ")}",
+            categories: "${categories}",
             submitted: "${Math.floor(Math.random() * 1000000)}"
           })' class="text-red-500 hover:scale-110 transition" title="Agregar a wishlist">
             <i class="far fa-heart fa-lg"></i>
@@ -155,7 +173,7 @@
           document.body.classList.toggle('overflow-hidden', value);
         }
       }" @keydown.escape.window="open = false" x-effect="toggleScroll(open)">
-        <button @click="open = true" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">Vista rápida</button>
+        <button @click="open = true" class="text-sm text-blue-600 dark:text-blue-400 hover:underline" aria-label="Vista rápida del libro">Vista rápida</button>
 
         <template x-if="open">
           <div @click.self="open = false" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
@@ -174,11 +192,11 @@
                 <a href="/book/${book.google_id}" class="hover:underline text-blue-700 dark:text-blue-400">${book.title}</a>
               </h3>
 
-              <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Autor: ${book.author}</p>
+              <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Autor: ${book.authors}</p>
               <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">Idioma: ${book.language}</p>
               <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">ISBN: ${book.isbn || "N/A"}</p>
 
-              ${
+                            ${
                 book.description
                   ? `<p class="text-sm text-gray-700 dark:text-gray-400 mt-2 whitespace-pre-line">${book.description}</p>`
                   : ""
@@ -189,7 +207,7 @@
               </div>
             </div>
           </div>
-                </template>
+        </template>
       </div>
     `;
   }

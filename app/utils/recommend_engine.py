@@ -57,7 +57,7 @@ def clean_text(text):
 def build_user_profile(user_books, selected_categories=None):
     corpus = []
     for b in user_books:
-        if not (b.author and b.categories and b.language):
+        if not (b.authors and b.categories and b.language):
             continue
         normalized = normalize_categories(b.categories.split(","))
         if selected_categories:
@@ -65,7 +65,7 @@ def build_user_profile(user_books, selected_categories=None):
                 continue
         enriched = " ".join([
             clean_text(b.title),
-            clean_text(b.author),
+            clean_text(b.authors),
             clean_text(",".join(normalized)),
             clean_text(b.language),
             clean_text(b.publisher),
@@ -102,11 +102,10 @@ def fetch_google_books(
         return []
 
     shown_ids = shown_ids or set()
-
     user_ids = {b.google_id.strip() for b in user_books if b.google_id}
     shown_ids.update(user_ids)
 
-    seen_titles, seen_authors, seen_isbns = set(), set(), set()
+    seen_keys, seen_isbns = set(), set()
     results = []
 
     categories_to_use = []
@@ -142,41 +141,46 @@ def fetch_google_books(
         gid = item.get("id", "").strip()
 
         if gid in shown_ids:
-            current_app.logger.debug(f"[RECOMMEND] Excluido por ID: {gid}")
             continue
 
-        title = volume.get("title", "").strip().lower()
+        title_raw = volume.get("title", "").strip()
+        title = title_raw.lower()
         authors = volume.get("authors", [])
         normalized_authors = [normalize_author(a) for a in authors]
+        title_author_key = f"{title}|{'|'.join(normalized_authors)}"
 
-        if title in seen_titles or any(a in seen_authors for a in normalized_authors):
-            current_app.logger.debug(f"[RECOMMEND] Excluido por autor/título repetido: {title}")
+        if title_author_key in seen_keys:
             continue
 
-        if not authors or not volume.get("description"):
-            current_app.logger.debug(f"[RECOMMEND] Excluido por falta de autores o descripción: {gid}")
+        description = volume.get("description", "")
+        if not authors or not description:
             continue
 
         raw_categories = volume.get("categories", [])
         normalized_categories = normalize_categories(raw_categories)
         mapped_categories = [map_to_main_category(cat) for cat in normalized_categories]
-        category = mapped_categories[0] if mapped_categories else ""
 
-        if category not in selected_categories:
-            current_app.logger.debug(f"[RECOMMEND] Excluido por categoría fuera de selección: {category}")
+        if not any(cat in selected_categories for cat in mapped_categories):
             continue
 
         language = volume.get("language", "")
         if language not in ("es", "en"):
             continue
 
-        title_raw = volume.get("title", "")
-        description = volume.get("description", "")
-        publisher = volume.get("publisher", "")
+        publisher_raw = volume.get("publisher")
+        publisher = publisher_raw.strip() if isinstance(publisher_raw, str) and publisher_raw.strip() else "No disponible"
+        if publisher == "No disponible":
+            current_app.logger.warning(f"[RECOMMEND] Libro sin editorial: {title_raw} ({gid})")
+
+        description_raw = volume.get("description")
+        description = description_raw.strip() if isinstance(description_raw, str) and description_raw.strip() else ""
+        if not description:
+            current_app.logger.warning(f"[RECOMMEND] Libro sin descripción: {title_raw} ({gid})")
+
 
         industry_ids = volume.get("industryIdentifiers", [])
         isbn = next((
-            identifier.get("identifier").replace("-", "").strip()
+            identifier.get("identifier", "").replace("-", "").strip()
             for identifier in industry_ids
             if identifier.get("type") in ("ISBN_13", "ISBN_10")
         ), None)
@@ -186,7 +190,7 @@ def fetch_google_books(
         enriched = " ".join([
             clean_text(title_raw),
             clean_text(" ".join(authors)),
-            clean_text(category),
+            clean_text(",".join(mapped_categories)),
             clean_text(language),
             clean_text(publisher),
             clean_text(description)
@@ -194,7 +198,6 @@ def fetch_google_books(
         book_vector = vectorizer.transform([enriched])
         score = cosine_similarity([profile_vector], book_vector)[0][0]
 
-        current_app.logger.debug(f"[RECOMMEND] Libro '{title_raw}' → similitud={score:.3f}")
         if score < min_similarity:
             continue
 
@@ -211,13 +214,14 @@ def fetch_google_books(
             "publisher": publisher,
             "publishedDate": volume.get("publishedDate", ""),
             "isbn": isbn,
-            "similarity": round(score, 3)
+            "similarity": round(score, 3),
+            "matched_category": mapped_categories[0] if mapped_categories else "",
+            "matched_terms": [cat for cat in mapped_categories if cat in selected_categories]
         }
 
         results.append(result)
         shown_ids.add(gid)
-        seen_titles.add(title)
-        seen_authors.update(normalized_authors)
+        seen_keys.add(title_author_key)
         if isbn:
             seen_isbns.add(isbn)
 

@@ -1,94 +1,116 @@
-{% extends "layouts/base_user.html" %} {% block title %}Mi Wishlist -
-SmartStack{% endblock %} {% block user_content %}
-<h2 class="text-2xl font-bold mb-4 text-gray-800 dark:text-white">
-  Libros en tu wishlist
-</h2>
+{% extends "layouts/base_user.html" %}
+{% block title %}Mi Wishlist - SmartStack{% endblock %}
+{% block user_content %}
 
-{% if books %}
-<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-  {% for book in books %}
-  <div
-    class="relative bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden flex flex-col"
-  >
-    <form
-      action="{{ url_for('books.remove_from_wishlist') }}"
-      method="POST"
-      class="absolute top-2 right-2 z-10"
-    >
-      <input type="hidden" name="book_id" value="{{ book.google_id }}" />
-      <button
-        type="submit"
-        title="Eliminar de wishlist"
-        class="text-red-600 hover:text-red-800"
-      >
-        <i class="fas fa-circle-xmark fa-lg"></i>
-      </button>
-    </form>
+<h2 class="text-2xl font-bold mb-4 text-gray-800 dark:text-white">Libros en tu wishlist</h2>
 
-    <a
-      href="{{ url_for('books.book_detail', id=book.google_id) }}"
-      class="w-full h-64 bg-gray-100 dark:bg-slate-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-slate-600 transition"
-    >
-      {% if book.small_thumbnail %}
-      <img
-        src="{{ book.small_thumbnail }}"
-        alt="Portada"
-        class="max-h-full max-w-full object-contain"
-      />
-      {% else %}
-      <span class="text-gray-400 dark:text-gray-500 text-sm">Sin portada</span>
-      {% endif %}
-    </a>
+{% if not is_empty %}
+  <form id="wishlist-search-form" class="mb-4 flex flex-wrap gap-2 items-center">
+    <input
+      type="text"
+      name="search"
+      placeholder="Buscar por título o autor"
+      class="flex-grow px-3 py-2 border rounded-md dark:bg-slate-700 dark:text-white"
+    />
+    <select name="sort" class="px-2 py-2 border rounded-md dark:bg-slate-700 dark:text-white">
+      <option value="recent">Más recientes</option>
+      <option value="oldest">Primeros agregados</option>
+      <option value="title_asc">Título A-Z</option>
+      <option value="title_desc">Título Z-A</option>
+    </select>
+  </form>
 
-    <div class="p-4 flex flex-col justify-between flex-grow">
-      <a
-        href="{{ url_for('books.book_detail', id=book.google_id) }}"
-        class="hover:underline"
-      >
-        <h3
-          class="font-semibold text-base mb-1 line-clamp-2 text-gray-800 dark:text-white"
-        >
-          {{ book.title }}
-        </h3>
-      </a>
-      <p class="text-xs text-gray-600 dark:text-gray-300 mb-1">
-        {{ book.author }}
-      </p>
-      <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-        Idioma: {{ book.language or 'N/A' }}
-      </p>
+  <p id="wishlist-counter" class="text-sm text-gray-600 dark:text-gray-300 mb-2"></p>
 
-      <!-- Move to library -->
-      <form action="{{ url_for('books.add_to_library') }}" method="POST">
-        <input type="hidden" name="book_id" value="{{ book.google_id }}" />
-        <input type="hidden" name="title" value="{{ book.title }}" />
-        <input type="hidden" name="authors" value="{{ book.author }}" />
-        <input type="hidden" name="language" value="{{ book.language }}" />
-        <input
-          type="hidden"
-          name="thumbnail"
-          value="{{ book.small_thumbnail }}"
-        />
-        <input type="hidden" name="isbn" value="{{ book.isbn }}" />
-        <input type="hidden" name="categories" value="{{ book.categories }}" />
-        <input
-          type="hidden"
-          name="submitted"
-          value="{{ range(1000000)|random }}"
-        />
-        <button
-          type="submit"
-          class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm flex items-center gap-1"
-        >
-          <i class="fas fa-bookmark"></i> Mover a biblioteca
-        </button>
-      </form>
-    </div>
+  <div id="books-wrapper" data-total="{{ total }}" data-page="{{ page }}" data-per-page="{{ per_page }}">
+    <div id="books-grid"></div>
+    <div id="books-pagination"></div>
   </div>
-  {% endfor %}
-</div>
 {% else %}
-<p class="text-gray-600 dark:text-gray-300">
-  Tu wishlist está vacía por ahora.
-</p>
-{% endif %} {% endblock %}
+  <div class="text-center py-12 text-gray-600 dark:text-gray-300">
+    <p class="text-lg mb-2">Tu wishlist está vacía por ahora.</p>
+    <p>Agrega libros desde la búsqueda o recomendaciones para comenzar.</p>
+  </div>
+{% endif %}
+
+{% if not is_empty %}
+<script>
+  const form = document.getElementById("wishlist-search-form");
+  const searchInput = form.querySelector('input[name="search"]');
+  const sortSelect = form.querySelector('select[name="sort"]');
+  const wrapper = document.getElementById("books-wrapper");
+  const gridContainer = document.getElementById("books-grid");
+  const paginationContainer = document.getElementById("books-pagination");
+  const counter = document.getElementById("wishlist-counter");
+
+  let debounceTimer;
+  let currentPage = parseInt(wrapper.dataset.page || "1");
+
+  function fetchWishlist() {
+    const query = searchInput.value;
+    const sort = sortSelect.value;
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      fetch(`/wishlist/search?search=${encodeURIComponent(query)}&sort=${sort}&page=${currentPage}`)
+        .then(res => res.text())
+        .then(html => {
+          const temp = document.createElement("div");
+          temp.innerHTML = html;
+
+          const newGrid = temp.querySelector("#books-grid");
+          const newPagination = temp.querySelector("#books-pagination");
+          const newWrapper = temp.querySelector("#books-wrapper");
+
+          if (newGrid) gridContainer.innerHTML = newGrid.innerHTML;
+          if (newPagination) paginationContainer.innerHTML = newPagination.innerHTML;
+          if (newWrapper) {
+            wrapper.dataset.total = newWrapper.dataset.total;
+            wrapper.dataset.page = newWrapper.dataset.page;
+            wrapper.dataset.perPage = newWrapper.dataset.perPage;
+          }
+
+          updateCounter();
+        });
+    }, 250);
+  }
+
+  function changePage(page) {
+    currentPage = page;
+    wrapper.dataset.page = page;
+    fetchWishlist();
+  }
+
+  function updateCounter() {
+    const total = parseInt(wrapper.dataset.total || "0");
+    const page = parseInt(wrapper.dataset.page || "1");
+    const perPage = parseInt(wrapper.dataset.perPage || "12");
+
+    const visible = gridContainer.querySelectorAll(".wishlist-card").length;
+    const start = (page - 1) * perPage + 1;
+    const end = start + visible - 1;
+
+    if (total > 0 && visible > 0) {
+      counter.textContent = `Mostrando ${start}–${end} de ${total}`;
+    } else {
+      counter.textContent = "";
+    }
+  }
+
+  searchInput.addEventListener("input", () => {
+    currentPage = 1;
+    wrapper.dataset.page = "1";
+    fetchWishlist();
+  });
+
+  sortSelect.addEventListener("change", () => {
+    currentPage = 1;
+    wrapper.dataset.page = "1";
+    fetchWishlist();
+  });
+
+  document.addEventListener("DOMContentLoaded", () => {
+    fetchWishlist();
+  });
+</script>
+{% endif %}
+{% endblock %}

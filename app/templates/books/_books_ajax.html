@@ -1,0 +1,38 @@
+<div id="books-wrapper" data-total="{{ total }}" data-page="{{ page }}" data-per-page="{{ per_page }}">
+  <!-- Grid de libros -->
+  <div id="books-grid">
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+      {% for book in books %}
+        {% include card_template %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Paginación AJAX -->
+  <div id="books-pagination">
+    {% set total_pages = (total // per_page) + (1 if total % per_page else 0) %}
+    {% if total_pages > 1 %}
+      <div class="mt-6 flex justify-center gap-2">
+        {% set start = [1, page - 2] | max %}
+        {% set end = [total_pages, page + 2] | min %}
+        {% for p in range(start, end + 1) %}
+          {% if loop.first and start > 1 %}
+            <span class="px-3 py-1">...</span>
+          {% endif %}
+          <button onclick="changePage({{ p }})"
+                  class="px-3 py-1 rounded border text-sm transition
+                         {% if p == page %}
+                           bg-blue-600 text-white border-blue-600
+                         {% else %}
+                           bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600
+                         {% endif %}">
+            {{ p }}
+          </button>
+          {% if loop.last and end < total_pages %}
+            <span class="px-3 py-1">...</span>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</div>
