@@ -50,6 +50,7 @@
 
           <form method="POST" action="{{ url_for('books.toggle_library') }}"
                 {% if confirm_library %}onsubmit="return confirm('{{ confirm_library }}')" {% endif %}>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="book_id" value="{{ book.google_id }}">
             <input type="hidden" name="title" value="{{ book.title }}">
             <input type="hidden" name="authors" value="{{ authors | join(', ') }}">
@@ -75,6 +76,7 @@
 
           <form method="POST" action="{{ url_for('books.toggle_wishlist') }}"
                 {% if confirm_wishlist %}onsubmit="return confirm('{{ confirm_wishlist }}')" {% endif %}>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="book_id" value="{{ book.google_id }}">
             <input type="hidden" name="title" value="{{ book.title }}">
             <input type="hidden" name="authors" value="{{ authors | join(', ') }}">

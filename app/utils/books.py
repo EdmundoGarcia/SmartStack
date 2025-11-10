@@ -34,6 +34,11 @@ def truncate(value, max_length):
     return value[:max_length] if value and len(value) > max_length else value
 
 def get_or_create_book(google_id, title, authors, thumbnail, language, isbn=None, categories_raw=None):
+    def force_https(url):
+        if url and url.startswith("http://"):
+            return url.replace("http://", "https://")
+        return url
+
     google_id = google_id.strip() if google_id else None
     if not google_id or not title:
         flash("Missing essential book data.", "error")
@@ -42,17 +47,20 @@ def get_or_create_book(google_id, title, authors, thumbnail, language, isbn=None
 
     isbn = isbn if isbn and isbn.lower() != "none" else None
 
+    # Check if book already exists by Google ID
     book = Book.query.filter_by(google_id=google_id).first()
     if book:
         current_app.logger.info(f"[BOOK] Retrieved from DB: {book.title} ({book.google_id})")
         return book
 
+    # Fallback: check by ISBN
     if not book and isbn:
         book = Book.query.filter_by(isbn=isbn).first()
         if book:
             current_app.logger.info(f"[BOOK] Retrieved by ISBN: {book.title} ({book.google_id})")
             return book
 
+    # Fetch from Google Books API
     try:
         response = requests.get(
             f"https://www.googleapis.com/books/v1/volumes/{google_id}",
@@ -76,6 +84,7 @@ def get_or_create_book(google_id, title, authors, thumbnail, language, isbn=None
         current_app.logger.warning(f"[BOOK] Empty volumeInfo for {google_id}")
         return None
 
+    # Extract metadata
     api_authors = volume.get("authors", [])
     final_authors = api_authors if api_authors else authors or []
     authors_string = ", ".join(final_authors)
@@ -85,29 +94,30 @@ def get_or_create_book(google_id, title, authors, thumbnail, language, isbn=None
     categories_text = ", ".join(categories) if categories else ""
 
     image_links = volume.get("imageLinks", {})
-    thumbnail_url = image_links.get("thumbnail") or image_links.get("smallThumbnail") or thumbnail
-    small_thumbnail_url = image_links.get("smallThumbnail") or image_links.get("thumbnail") or thumbnail_url
+    thumbnail_url = force_https(image_links.get("thumbnail") or image_links.get("smallThumbnail") or thumbnail)
+    small_thumbnail_url = force_https(image_links.get("smallThumbnail") or image_links.get("thumbnail") or thumbnail_url)
 
     published_date = volume.get("publishedDate", "")
     publisher = volume.get("publisher", "")
 
-    if not isbn:
-        for identifier in volume.get("industryIdentifiers", []):
-            if identifier.get("type") == "ISBN_13":
-                isbn = identifier.get("identifier")
-                break
-        if not isbn:
-            for identifier in volume.get("industryIdentifiers", []):
-                if identifier.get("type") == "ISBN_10":
-                    isbn = identifier.get("identifier")
-                    break
+    # Prefer ISBN-13, fallback to ISBN-10
+    isbn_13 = None
+    isbn_10 = None
+    for identifier in volume.get("industryIdentifiers", []):
+        if identifier.get("type") == "ISBN_13":
+            isbn_13 = identifier.get("identifier")
+        elif identifier.get("type") == "ISBN_10":
+            isbn_10 = identifier.get("identifier")
+    isbn = isbn_13 or isbn_10 or isbn
     isbn = isbn if isbn and isbn.lower() != "none" else None
 
+    # Final validation
     if not all([google_id, title, authors_string, language]):
         flash("Book creation failed. Missing essential data.", "error")
         current_app.logger.warning(f"[BOOK] Incomplete data: id={google_id}, title={title}, authors={authors_string}, language={language}")
         return None
 
+    # Create book object
     book = Book(
         google_id=google_id,
         title=truncate(title, 255),
@@ -122,10 +132,12 @@ def get_or_create_book(google_id, title, authors, thumbnail, language, isbn=None
         published_date=truncate(published_date, 20),
     )
 
+    # Warn if metadata is incomplete
     if not book.authors or not book.thumbnail or not book.isbn:
         flash("El libro se agregó con datos incompletos", "info")
         current_app.logger.warning(f"[BOOK] Incomplete metadata: {book.title} ({book.google_id}) → authors={book.authors}, thumbnail={book.thumbnail}, isbn={book.isbn}")
 
+    # Save to database
     try:
         db.session.add(book)
         db.session.commit()

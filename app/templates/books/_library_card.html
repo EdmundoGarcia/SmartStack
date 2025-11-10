@@ -1,36 +1,19 @@
-<div
-  class="library-card bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden flex flex-col transition hover:shadow-lg"
->
+<div class="library-card bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden flex flex-col transition hover:shadow-lg">
   <!-- Portada con enlace -->
-  <a
-    href="{{ url_for('books.book_detail', google_id=book.google_id) }}"
-    class="block"
-  >
+  <a href="{{ url_for('books.book_detail', google_id=book.google_id) }}" class="block">
     {% if book.thumbnail %}
-    <img
-      src="{{ book.thumbnail }}"
-      alt="Portada"
-      class="w-full h-48 object-contain bg-gray-100 dark:bg-slate-700"
-    />
+      <img src="{{ book.thumbnail }}" alt="Portada" class="w-full h-48 object-contain bg-gray-100 dark:bg-slate-700" />
     {% else %}
-    <div
-      class="w-full h-48 flex items-center justify-center text-sm text-gray-400 dark:text-gray-500 italic bg-gray-100 dark:bg-slate-700"
-    >
-      Sin portada disponible
-    </div>
+      <div class="w-full h-48 flex items-center justify-center text-sm text-gray-400 dark:text-gray-500 italic bg-gray-100 dark:bg-slate-700">
+        Sin portada disponible
+      </div>
     {% endif %}
   </a>
 
   <!-- Contenido -->
   <div class="p-4 flex flex-col flex-grow">
-    <!-- Título con enlace -->
-    <h3
-      class="text-lg font-semibold text-gray-800 dark:text-white mb-1 leading-snug"
-    >
-      <a
-        href="{{ url_for('books.book_detail', google_id=book.google_id) }}"
-        class="hover:underline text-blue-700 dark:text-blue-400"
-      >
+    <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-1 leading-snug">
+      <a href="{{ url_for('books.book_detail', google_id=book.google_id) }}" class="hover:underline text-blue-700 dark:text-blue-400">
         {{ book.title }}
       </a>
     </h3>
@@ -40,44 +23,21 @@
     </p>
 
     <!-- Acciones -->
-    <div
-      class="mt-auto flex justify-between items-center pt-2 border-t border-gray-200 dark:border-slate-700"
-    >
-      <!-- Vista rápida -->
+    <div class="mt-auto flex justify-between items-center pt-2 border-t border-gray-200 dark:border-slate-700">
       {% include "components/quick_view_modal.html" %}
 
-      <!-- Alternar biblioteca -->
-      <form
-        method="POST"
-        action="{{ url_for('books.toggle_library') }}"
-        onsubmit="return confirm('¿Estás seguro de que deseas eliminar este libro de tu biblioteca?')"
-      >
-        <input type="hidden" name="book_id" value="{{ book.google_id }}" />
-        <input type="hidden" name="title" value="{{ book.title }}" />
-        <input
-          type="hidden"
-          name="authors"
-          value="{{ book.authors_list | join(', ') }}"
-        />
-        <input type="hidden" name="language" value="{{ book.language }}" />
-        <input type="hidden" name="thumbnail" value="{{ book.thumbnail }}" />
-        <input type="hidden" name="isbn" value="{{ book.isbn }}" />
-        <input
-          type="hidden"
-          name="categories"
-          value="{{ book.categories_flat | join(', ') }}"
-        />
-        <input
-          type="hidden"
-          name="submitted"
-          value="{{ range(1000000)|random }}"
-        />
-        <button
-          type="submit"
-          class="text-red-600 hover:text-red-700 transition"
-          title="Eliminar de biblioteca"
-          aria-label="Eliminar libro"
-        >
+      <form method="POST" action="{{ url_for('books.toggle_library') }}"
+            onsubmit="return confirm('¿Estás seguro de que deseas eliminar este libro de tu biblioteca?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="book_id" value="{{ book.google_id }}">
+        <input type="hidden" name="title" value="{{ book.title }}">
+        <input type="hidden" name="authors" value="{{ book.authors_list | join(', ') }}">
+        <input type="hidden" name="language" value="{{ book.language }}">
+        <input type="hidden" name="thumbnail" value="{{ book.thumbnail }}">
+        <input type="hidden" name="isbn" value="{{ book.isbn }}">
+        <input type="hidden" name="categories" value="{{ book.categories_flat | join(', ') }}">
+        <input type="hidden" name="submitted" value="{{ range(1000000)|random }}">
+        <button type="submit" class="text-red-600 hover:text-red-700 transition" title="Eliminar de biblioteca" aria-label="Eliminar libro">
           <i class="fas fa-circle-xmark fa-lg"></i>
         </button>
       </form>

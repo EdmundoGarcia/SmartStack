@@ -228,7 +228,7 @@ def toggle_library():
         flash(f'📚 "{title}" fue eliminado de tu biblioteca.', "info")
     else:
         db.session.add(LibraryBook(library_id=library.id, book_id=book.id))
-        flash(f'📌 "{title}" fue añadido a tu biblioteca.', "success")
+        flash(f'"{title}" fue añadido a tu biblioteca.', "success")
 
         #If the book was on library, it gets deleted
         if current_user.wishlist:
@@ -281,10 +281,10 @@ def toggle_wishlist():
 
     if wb:
         db.session.delete(wb)
-        flash(f'📌 "{title}" fue eliminado de tu wishlist.', "info")
+        flash(f'"{title}" fue eliminado de tu wishlist.', "info")
     else:
         db.session.add(WishlistBook(wishlist_id=wishlist.id, book_id=book.id, added_at=datetime.utcnow()))
-        flash(f'📌 "{title}" fue añadido a tu wishlist.', "success")
+        flash(f'"{title}" fue añadido a tu wishlist.', "success")
 
     db.session.commit()
     return redirect(request.referrer or url_for("books.search_books"))

@@ -9,29 +9,30 @@ from collections import defaultdict
 from app.utils.books import clean_description, normalize_categories
 
 CATEGORY_GROUPS = {
-    "Fiction": ["Fiction", "Literary Fiction", "Contemporary Fiction", "Short Stories"],
+    "Ficción": ["Fiction", "Literary Fiction", "Contemporary Fiction", "Short Stories"],
     "Romance": ["Romance", "Historical Romance", "Paranormal Romance", "Chick Lit"],
-    "Mystery & Thriller": ["Mystery", "Thriller", "Crime", "Suspense", "Detective"],
-    "Science Fiction": ["Science Fiction", "Dystopian", "Space Opera", "Cyberpunk"],
-    "Fantasy": ["Fantasy", "Epic Fantasy", "Urban Fantasy", "Dark Fantasy"],
-    "Horror": ["Horror", "Supernatural", "Gothic", "Occult"],
-    "Biography & Memoir": ["Biography", "Memoir", "Autobiography", "Personal Memoirs"],
-    "History": ["History", "Military History", "World History", "Ancient Civilizations"],
-    "Self-Help & Wellness": ["Self-Help", "Motivation", "Mental Health", "Wellness", "Productivity"],
-    "Business & Economics": ["Business", "Economics", "Finance", "Leadership", "Entrepreneurship"],
-    "Science & Technology": ["Science", "Technology", "Physics", "Biology", "AI", "Engineering"],
-    "Young Adult": ["Young Adult", "YA Romance", "YA Fantasy", "Coming of Age"],
-    "Poetry": ["Poetry", "Verse", "Anthology", "Contemporary Poetry"],
-    "Philosophy & Religion": ["Philosophy", "Religion", "Spirituality", "Theology", "Ethics"],
-    "Education & Learning": ["Education", "Pedagogy", "Study Guides", "Teaching", "Academic Skills"],
-    "Parenting & Relationships": ["Parenting", "Relationships", "Family", "Marriage", "Dating"],
-    "Art & Design": ["Art", "Design", "Photography", "Architecture", "Graphic Design"],
-    "Travel & Adventure": ["Travel", "Adventure", "Travel Guides", "Exploration", "Cultural Travel"],
-    "Cooking & Food": ["Cooking", "Cookbooks", "Food", "Nutrition", "Culinary Arts"],
-    "Politics & Society": ["Politics", "Sociology", "Current Affairs", "Social Issues", "Civic Engagement"],
-    "Comics & Graphic Novels": ["Comics", "Graphic Novels", "Manga", "Webcomics"],
-    "Children's Books": ["Children", "Picture Books", "Early Readers", "Middle Grade"]
+    "Misterio y Suspenso": ["Mystery", "Thriller", "Crime", "Suspense", "Detective"],
+    "Ciencia ficción": ["Science Fiction", "Dystopian", "Space Opera", "Cyberpunk"],
+    "Fantasía": ["Fantasy", "Epic Fantasy", "Urban Fantasy", "Dark Fantasy"],
+    "Terror": ["Horror", "Supernatural", "Gothic", "Occult"],
+    "Biografía y Memorias": ["Biography", "Memoir", "Autobiography", "Personal Memoirs"],
+    "Historia": ["History", "Military History", "World History", "Ancient Civilizations"],
+    "Autoayuda y Bienestar": ["Self-Help", "Motivation", "Mental Health", "Wellness", "Productivity"],
+    "Negocios y Economía": ["Business", "Economics", "Finance", "Leadership", "Entrepreneurship"],
+    "Ciencia y Tecnología": ["Science", "Technology", "Physics", "Biology", "AI", "Engineering"],
+    "Juvenil": ["Young Adult", "YA Romance", "YA Fantasy", "Coming of Age"],
+    "Poesía": ["Poetry", "Verse", "Anthology", "Contemporary Poetry"],
+    "Filosofía y Religión": ["Philosophy", "Religion", "Spirituality", "Theology", "Ethics"],
+    "Educación y Aprendizaje": ["Education", "Pedagogy", "Study Guides", "Teaching", "Academic Skills"],
+    "Familia y Relaciones": ["Parenting", "Relationships", "Family", "Marriage", "Dating"],
+    "Arte y Diseño": ["Art", "Design", "Photography", "Architecture", "Graphic Design"],
+    "Viajes y Aventura": ["Travel", "Adventure", "Travel Guides", "Exploration", "Cultural Travel"],
+    "Cocina y Gastronomía": ["Cooking", "Cookbooks", "Food", "Nutrition", "Culinary Arts"],
+    "Política y Sociedad": ["Politics", "Sociology", "Current Affairs", "Social Issues", "Civic Engagement"],
+    "Cómics y Novelas gráficas": ["Comics", "Graphic Novels", "Manga", "Webcomics"],
+    "Infantil": ["Children", "Picture Books", "Early Readers", "Middle Grade"]
 }
+
 
 def map_to_main_category(raw_category):
     if not raw_category:
