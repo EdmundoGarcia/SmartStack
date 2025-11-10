@@ -672,17 +672,18 @@ def recommendations():
         .all()
     )
 
-    recommendation_cache = session.get("recommendation_cache", [])
-
-    if len(user_books) < 3 and not recommendation_cache:
-        flash("Agrega al menos 3 libros a tu biblioteca para recibir recomendaciones.", "warning")
-        current_app.logger.info(f"[RECOMMEND] Usuario {current_user.id} sin perfil suficiente ni caché.")
-        return redirect(url_for("books.view_library"))
-
     grouped = group_books_by_category(user_books)
     user_categories = sorted(grouped.keys())
 
-    return render_template("books/recommendations.html", user_categories=user_categories)
+    show_recommendation_ui = len(user_books) >= 3
+
+    return render_template(
+        "books/recommendations.html",
+        user_categories=user_categories,
+        show_recommendation_ui=show_recommendation_ui
+    )
+
+
 
 @books_bp.route("/recommendations/fetch")
 @login_required
@@ -763,23 +764,24 @@ def fetch_recommendations():
         "message": "No se encontraron recomendaciones relevantes en este momento. Intenta más tarde o agrega más libros a tu biblioteca."
     }
 
-
 @books_bp.route("/search/isbn-scan")
 @login_required
 def isbn_scan():
     return render_template("books/isbn_scan.html")
 
-
 @books_bp.route("/isbn/<isbn>")
 @login_required
 def resolve_isbn(isbn):
+    import re
+    if not re.fullmatch(r"97[89]\d{10}", isbn):
+        flash("ISBN inválido. Debe tener 13 dígitos y comenzar con 978 o 979.", "warning")
+        return redirect(url_for("books.search_books"))
+
     api_key = current_app.config["GOOGLE_BOOKS_API_KEY"]
     params = {"q": f"isbn:{isbn}", "maxResults": 1, "key": api_key}
 
     try:
-        response = requests.get(
-            "https://www.googleapis.com/books/v1/volumes", params=params, timeout=5
-        )
+        response = requests.get("https://www.googleapis.com/books/v1/volumes", params=params, timeout=5)
         items = response.json().get("items", []) if response.status_code == 200 else []
     except requests.RequestException:
         flash("No se pudo buscar el ISBN.", "error")
@@ -790,4 +792,4 @@ def resolve_isbn(isbn):
         return redirect(url_for("books.search_books"))
 
     google_id = items[0]["id"]
-    return redirect(url_for("books.book_detail", google_id=book_id))
+    return redirect(url_for("books.book_detail", google_id=google_id))

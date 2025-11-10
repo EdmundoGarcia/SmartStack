@@ -92,7 +92,7 @@ def register():
         activation_link = url_for('auth.activate_account', token=token, _external=True)
 
         msg = Message(
-            subject="🔐 Activa tu cuenta en Smart Stack",
+            subject="Activa tu cuenta en Smart Stack",
             recipients=[email],
             html=f"""
             <div style="font-family: Arial; padding: 20px;">

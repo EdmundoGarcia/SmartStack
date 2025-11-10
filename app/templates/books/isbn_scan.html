@@ -10,18 +10,19 @@
       <i class="fas fa-barcode text-blue-600 dark:text-blue-400"></i> Escanear ISBN del libro
     </h2>
 
-    <!-- cam -->
+    <!-- Cámara -->
     <div id="scanner-container" class="w-full max-w-2xl h-[320px] rounded shadow border border-gray-300 dark:border-slate-600 mb-2 overflow-hidden">
       <div id="scanner" class="w-full h-full"></div>
     </div>
 
+    <!-- Botón manual -->
     <div class="w-full max-w-2xl bg-gray-100 dark:bg-slate-800 text-center py-4 rounded mb-6">
       <button id="manual-btn" class="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300">
         ¿No puedes escanearlo? Haz click aquí
       </button>
     </div>
 
-    <!-- Result -->
+    <!-- Resultado -->
     <div id="isbn-result" class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 p-4 rounded mb-4 hidden w-full max-w-2xl text-center">
       <p><strong>ISBN detectado:</strong> <span id="isbn-value" class="font-mono"></span></p>
       <div class="mt-2 flex justify-center gap-4">
@@ -31,7 +32,7 @@
     </div>
   </div>
 
-  <!-- Modal -->
+  <!-- Modal manual -->
   <div id="manual-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
     <div class="bg-white dark:bg-slate-800 text-gray-800 dark:text-white rounded-lg p-6 w-full max-w-sm shadow-lg">
       <h3 class="text-lg font-semibold mb-2">Ingresa el código ISBN del libro</h3>
@@ -44,7 +45,7 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<script src="https://unpkg.com/@ericblade/quagga2@1.2.6/dist/quagga.min.js"></script>
 <script>
   const scanner = document.getElementById("scanner");
   const resultBox = document.getElementById("isbn-result");
@@ -72,13 +73,8 @@
           height: { ideal: 720 }
         }
       },
-      locator: {
-        patchSize: "medium",
-        halfSample: true
-      },
-      decoder: {
-        readers: ["ean_reader"]
-      },
+      locator: { patchSize: "medium", halfSample: true },
+      decoder: { readers: ["ean_reader"] },
       locate: true
     }, function(err) {
       if (err) {
@@ -88,8 +84,6 @@
       Quagga.start();
     });
   }
-
-  startScanner();
 
   Quagga.onDetected(function(data) {
     const code = data.codeResult.code;
@@ -101,31 +95,31 @@
     }
   });
 
-  confirmBtn.onclick = function() {
+  confirmBtn.onclick = () => {
     if (detectedISBN) {
       window.location.href = `/isbn/${detectedISBN}`;
     }
   };
 
-  cancelBtn.onclick = function() {
+  cancelBtn.onclick = () => {
     resultBox.classList.add("hidden");
     detectedISBN = null;
     Quagga.stop();
     startScanner();
   };
 
-  manualBtn.onclick = function() {
+  manualBtn.onclick = () => {
     manualModal.classList.remove("hidden");
   };
 
-  manualCancel.onclick = function() {
+  manualCancel.onclick = () => {
     manualModal.classList.add("hidden");
     manualInput.value = "";
     Quagga.stop();
     startScanner();
   };
 
-  manualConfirm.onclick = function() {
+  manualConfirm.onclick = () => {
     const code = manualInput.value.trim();
     if (/^97[89]\d{10}$/.test(code)) {
       window.location.href = `/isbn/${code}`;
@@ -133,5 +127,7 @@
       alert("ISBN inválido. Debe tener 13 dígitos y comenzar con 978 o 979.");
     }
   };
+
+  startScanner();
 </script>
 {% endblock %}

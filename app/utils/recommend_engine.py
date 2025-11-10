@@ -80,7 +80,9 @@ def build_user_profile(user_books, selected_categories=None):
     tfidf_matrix = vectorizer.fit_transform(corpus)
     profile_vector = np.asarray(tfidf_matrix.mean(axis=0)).flatten()
 
-    hash_input = "".join(corpus) + "|".join(selected_categories or [])
+    book_ids = [b.google_id for b in user_books if b.google_id]
+    hash_input = f"{len(corpus)}|" + "|".join(book_ids) + "|" + "|".join(corpus) + "|" + "|".join(selected_categories or [])
+
     profile_hash = hashlib.md5(hash_input.encode("utf-8")).hexdigest()
 
     return profile_vector, vectorizer, profile_hash
@@ -96,7 +98,7 @@ def fetch_google_books(
     shown_ids=None,
     selected_categories=None,
     max_results=40,
-    min_similarity=0.25
+    min_similarity=0.2
 ):
     if profile_vector is None or not selected_categories:
         return []
