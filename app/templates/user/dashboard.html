@@ -1,22 +1,25 @@
 {% extends 'layouts/base.html' %}
 {% block title %}Bienvenido a Smart Stack{% endblock %}
-{% block content %}
-  <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">
-    Bienvenido, {{ current_user.username }}!
-  </h1>
-  <p class="text-gray-600 dark:text-gray-300 mb-6">
-    Selecciona una opción del menú de navegación para comenzar.
-  </p>
 
-  {% if current_user.library.books or current_user.wishlist.books %}
-  <div class="bg-blue-50 dark:bg-slate-800 text-blue-900 dark:text-blue-100 p-4 rounded shadow text-sm md:text-base">
-    <p>Tienes <strong>{{ current_user.library.books|length }}</strong> libros en tu biblioteca y <strong>{{ current_user.wishlist.books|length }}</strong> en tu wishlist.</p>
-    <p class="mt-2">Organiza tu biblioteca. Descubre tu próxima lectura.</p>
-  </div>
-  {% else %}
-  <div class="bg-yellow-50 dark:bg-slate-700 text-yellow-900 dark:text-yellow-100 p-4 rounded shadow text-sm md:text-base">
-    <p>Aún no has agregado libros a tu biblioteca ni a tu wishlist.</p>
-    <!-- <p class="mt-2">¿Por qué no comienzas escaneando tu primer ISBN?</p> -->
-  </div>
-  {% endif %}
+{% block content %}
+  <section class="px-6 py-16 max-w-3xl mx-auto space-y-6">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+      Bienvenido, {{ current_user.username }}.
+    </h1>
+    <p class="text-base text-gray-600 dark:text-gray-400">
+      Explora. Organiza. Descubre.
+    </p>
+
+    {% if current_user.library.books or current_user.wishlist.books %}
+    <div class="bg-indigo-50 dark:bg-slate-800 text-indigo-900 dark:text-indigo-100 p-4 rounded shadow text-sm md:text-base">
+      <p>Tienes <strong>{{ current_user.library.books|length }}</strong> libros en tu biblioteca y <strong>{{ current_user.wishlist.books|length }}</strong> en tu wishlist.</p>
+      <p class="mt-2">Tu colección crece. Tu próxima lectura está cerca.</p>
+    </div>
+    {% else %}
+    <div class="bg-purple-50 dark:bg-slate-700 text-purple-900 dark:text-purple-100 p-4 rounded shadow text-sm md:text-base">
+      <p>Aún no has agregado libros.</p>
+      <p class="mt-2">Cuando estés listo, Smart Stack estará aquí para recomendarte algo que te hable.</p>
+    </div>
+    {% endif %}
+  </section>
 {% endblock %}

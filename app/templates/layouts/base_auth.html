@@ -7,17 +7,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Autenticación{% endblock %}</title>
 
-  <link
-      rel="shortcut icon"
-      href="{{ url_for('static', filename='favicon.ico') }}"
-    />
-  <!-- Tailwind CSS CDN -->
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" />
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Alpine.js -->
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-  <!-- Tailwind Config con modo oscuro activado por clase -->
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -34,10 +27,8 @@
     function togglePassword(inputId, iconId) {
       const input = document.getElementById(inputId);
       const icon = document.getElementById(iconId);
-
       const isHidden = input.type === "password";
       input.type = isHidden ? "text" : "password";
-
       icon.innerHTML = isHidden
         ? `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
              d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.223-3.592M6.634 6.634A9.956 9.956 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.956 9.956 0 01-4.379 5.302M15 12a3 3 0 11-6 0 3 3 0 016 0zM3 3l18 18" />`
@@ -49,7 +40,24 @@
   </script>
 </head>
 
-<body class="bg-gray-100 dark:bg-slate-900 text-gray-800 dark:text-white transition-colors duration-300 min-h-screen flex items-center justify-center">
+<body class="bg-gray-100 dark:bg-slate-900 text-gray-800 dark:text-white transition-colors duration-300 min-h-screen">
+
+  <!-- Navbar -->
+  <nav class="sticky top-0 z-50 bg-primary text-white px-4 py-3 shadow-md flex items-center justify-between border-b border-blue-900">
+    <div class="flex items-center gap-4">
+      <a href="{{ url_for('main.landing') }}">
+        <img src="{{ url_for('static', filename='images/logo.png') }}"
+             alt="Smart Stack Logo"
+             class="h-20 md:h-24 w-auto" />
+      </a>
+    </div>
+    <div class="flex items-center gap-4">
+      <a href="{{ url_for('auth.login') }}" class="hover:text-accent transition">Iniciar sesión</a>
+      <a href="{{ url_for('auth.register') }}" class="bg-white text-primary px-4 py-2 rounded hover:bg-gray-100 transition">
+        Registrarse
+      </a>
+    </div>
+  </nav>
 
   <!-- Sticky botón modo oscuro -->
   <button @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode)"
@@ -57,8 +65,11 @@
     <span x-text="darkMode ? '🌙 Oscuro' : '☀️ Claro'"></span>
   </button>
 
-  <main class="w-full max-w-md p-6 bg-white dark:bg-slate-800 rounded shadow-md">
-    {% block content %}{% endblock %}
+  <!-- Auth content -->
+  <main class="flex items-center justify-center py-12 px-4">
+    <div class="w-full max-w-md p-6 bg-white dark:bg-slate-800 rounded shadow-md">
+      {% block content %}{% endblock %}
+    </div>
   </main>
 </body>
 </html>

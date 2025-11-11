@@ -1,3 +1,5 @@
+#We prefered not to use neither NLTK nor stopwords, to maximize the coverage of recommendations and avoid strict filters
+
 from flask import (
     Blueprint,
     render_template,

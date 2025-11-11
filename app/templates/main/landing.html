@@ -1,0 +1,79 @@
+{% extends "layouts/base_main.html" %} {% block title %}Smart Stack{% endblock
+%} {% block content %}
+<!-- Hero -->
+<section
+  class="px-6 py-20 md:py-32 text-center bg-gradient-to-br from-indigo-50 to-white dark:from-slate-800 dark:to-slate-900"
+>
+  <h1
+    class="text-4xl md:text-6xl font-extrabold text-primary dark:text-white leading-tight tracking-tight"
+  >
+    Tu próxima historia<br class="hidden md:inline" />
+    no empieza en una lista.<br />
+    Empieza contigo.
+  </h1>
+  <p
+    class="mt-6 text-lg md:text-xl text-gray-700 dark:text-gray-300 max-w-2xl mx-auto"
+  >
+    Smart Stack aprende de ti. <br />
+    Te sugiere libros que conectan con lo que sientes, lo que buscas, lo que
+    eres.
+  </p>
+  <a
+    href="{{ url_for('auth.register') }}"
+    class="mt-8 inline-block bg-accent text-white px-6 py-3 rounded-full text-lg font-semibold hover:bg-yellow-500 transition shadow-md hover:scale-105 transform duration-200"
+  >
+    Quiero descubrir mi próxima lectura
+  </a>
+</section>
+
+<!-- Features -->
+<section
+  class="grid grid-cols-1 md:grid-cols-3 gap-8 px-6 py-20 bg-white dark:bg-slate-900 max-w-7xl mx-auto"
+>
+  <div class="text-center space-y-4">
+    <div class="w-10 h-1 mx-auto bg-accent rounded"></div>
+    <h3 class="text-xl font-semibold text-gray-800 dark:text-white">
+      Recomendaciones que te entienden
+    </h3>
+    <p class="text-gray-600 dark:text-gray-400">
+      No te mostramos lo popular. <br />
+      Te mostramos lo que encaja contigo.
+    </p>
+  </div>
+  <div class="text-center space-y-4">
+    <div class="w-10 h-1 mx-auto bg-accent rounded"></div>
+    <h3 class="text-xl font-semibold text-gray-800 dark:text-white">
+      Un sistema que aprende de ti
+    </h3>
+    <p class="text-gray-600 dark:text-gray-400">
+      Aprende de tus lecturas. <br />
+      No necesita que expliques. <br>
+      Solo que leas.
+    </p>
+  </div>
+  <div class="text-center space-y-4">
+    <div class="w-10 h-1 mx-auto bg-accent rounded"></div>
+    <h3 class="text-xl font-semibold text-gray-800 dark:text-white">
+      Historias que se quedan contigo
+    </h3>
+    <p class="text-gray-600 dark:text-gray-400">
+      Empieza ahora y encuentra una lectura que realmente te hable.
+    </p>
+  </div>
+</section>
+
+<!-- CTA final -->
+<section
+  class="px-6 py-20 text-center bg-gradient-to-br from-indigo-100 to-indigo-300 dark:from-slate-800 dark:to-slate-900"
+>
+  <h2 class="text-3xl md:text-4xl font-bold text-primary dark:text-white mb-6">
+    ¿Listo para encontrar el libro que no sabías que necesitabas?
+  </h2>
+  <a
+    href="{{ url_for('auth.register') }}"
+    class="bg-gradient-to-r from-blue-500 via-indigo-600 to-blue-700 text-white px-6 py-3 rounded-full text-lg font-semibold hover:scale-110 transform transition duration-300 shadow-lg"
+  >
+    Empieza con una historia que te hable
+  </a>
+</section>
+{% endblock %}

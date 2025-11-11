@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html
+  lang="es"
+  x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }"
+  :class="{ 'dark': darkMode }"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Smart Stack{% endblock %}</title>
+
+    <!-- Font Awesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+
+    <link
+      rel="shortcut icon"
+      href="{{ url_for('static', filename='favicon.ico') }}"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script
+      defer
+      src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
+    ></script>
+
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          fontFamily: {
+            sans: ["Inter", "sans-serif"],
+          },
+          extend: {
+            colors: {
+              primary: "#1e3a8a",
+              accent: "#f59e0b",
+            },
+          },
+        },
+      };
+    </script>
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body
+    class="bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white font-sans transition-colors duration-300"
+  >
+    <div class="flex flex-col min-h-screen">
+      <!-- Navbar -->
+      <!-- Navbar -->
+      <nav
+        class="sticky top-0 z-50 bg-primary text-white px-4 py-3 shadow-md flex items-center justify-between border-b border-blue-900"
+      >
+        <!-- Logo -->
+        <div class="flex items-center gap-4">
+          <a href="{{ url_for('main.landing') }}">
+            <img
+              src="{{ url_for('static', filename='images/logo.png') }}"
+              alt="Smart Stack Logo"
+              class="h-20 md:h-24 max-w-[120px] object-contain"
+            />
+          </a>
+        </div>
+
+        <!-- Auth links -->
+        <div class="flex items-center gap-4">
+          <a
+            href="{{ url_for('auth.login') }}"
+            class="hover:text-accent transition"
+            >Iniciar sesión</a
+          >
+          <a
+            href="{{ url_for('auth.register') }}"
+            class="bg-white text-primary px-4 py-2 rounded hover:bg-gray-100 transition hover:scale-105 transform duration-150"
+          >
+            Registrarse
+          </a>
+        </div>
+      </nav>
+
+      <!-- Theme toggle -->
+      <div class="fixed top-[160px] right-0 z-50">
+        <button
+          @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode)"
+          class="bg-white dark:bg-slate-700 text-lg p-3 rounded-full shadow hover:bg-gray-100 dark:hover:bg-slate-600 transition"
+          title="Cambiar tema"
+        >
+          <span x-text="darkMode ? '🌙' : '☀️'"></span>
+        </button>
+      </div>
+
+      <!-- Page Content -->
+      <main class="flex-grow">{% block content %}{% endblock %}</main>
+
+      <!-- Footer -->
+      <footer
+        class="bg-primary text-white text-center text-xs py-4 shadow-inner"
+      >
+        <p class="text-base" text-white font-bold>
+          Smart Stack —  Explora. Organiza. Descubre.  © 2025
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>
