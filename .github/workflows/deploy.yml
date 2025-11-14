@@ -20,7 +20,7 @@ jobs:
           username: ${{ secrets.GCP_VM_USER }}
           key: ${{ secrets.GCP_VM_SSH_KEY }}
           script: |
-            # Ensure GitHub host key is trusted (avoids interactive prompt)
+            # Trust GitHub's host key to avoid interactive prompt
             ssh-keyscan -H github.com >> ~/.ssh/known_hosts
 
             cd /home/${{ secrets.GCP_VM_USER }}
@@ -29,11 +29,12 @@ jobs:
               git clone git@github.com:EdmundoGarcia/SmartStack.git SmartStack
             else
               cd SmartStack
+              git remote set-url origin git@github.com:EdmundoGarcia/SmartStack.git
               git fetch origin main
               git reset --hard origin/main
             fi
 
-            # Update dependencies
+            # Install updated dependencies
             /home/${{ secrets.GCP_VM_USER }}/SmartStack/venv/bin/pip install -r requirements.txt
 
             # Restart Flask service
