@@ -20,7 +20,14 @@ jobs:
           username: ${{ secrets.GCP_VM_USER }}
           key: ${{ secrets.GCP_VM_SSH_KEY }}
           script: |
-            cd /home/${{ secrets.GCP_VM_USER }}/SmartStack
-            git pull origin main
+            cd /home/${{ secrets.GCP_VM_USER }}
+            if [ ! -d "SmartStack/.git" ]; then
+              rm -rf SmartStack
+              git clone https://github.com/EdmundoGarcia/SmartStack.git
+            else
+              cd SmartStack
+              git fetch origin main
+              git reset --hard origin/main
+            fi
             /home/${{ secrets.GCP_VM_USER }}/SmartStack/venv/bin/pip install -r requirements.txt
             sudo systemctl restart flask.service
