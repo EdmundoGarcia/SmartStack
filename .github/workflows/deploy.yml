@@ -34,8 +34,7 @@ jobs:
               git reset --hard origin/main
             fi
 
-            # Install updated dependencies
-            /home/${{ secrets.GCP_VM_USER }}/SmartStack/venv/bin/pip install -r requirements.txt
-
-            # Restart Flask service
-            sudo systemctl restart flask.service
+            # Build and restart Docker Compose stack
+            cd SmartStack
+            docker-compose down
+            docker-compose up -d --build

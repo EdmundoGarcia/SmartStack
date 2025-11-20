@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  smartstack:
+    build: .
+    container_name: smartstack_app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - mysql
+    env_file:
+      - .env
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: smartstack_redis
+    ports:
+      - "6379:6379"
+    restart: always
+
+  mysql:
+    image: mysql:8
+    container_name: smartstack_mysql
+    env_file:
+      - .env
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql-init:/docker-entrypoint-initdb.d
+    ports:
+      - "3306:3306"
+    restart: always
+
+volumes:
+  mysql_data:
