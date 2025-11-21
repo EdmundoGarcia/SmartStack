@@ -1,7 +1,10 @@
+import os
 from flask import Flask, redirect, url_for
 from flask_login import LoginManager
 from flask_session import Session
 from flask_wtf.csrf import CSRFProtect
+from redis import Redis
+
 from app.extensions import db, mail
 from app.models import User
 from app.routes import main_bp, auth, books_bp
@@ -17,11 +20,15 @@ def create_app():
     # CSRF protection
     csrf.init_app(app)
 
-    # Session configuration
-    app.config["SESSION_TYPE"] = "filesystem"
-    app.config["SESSION_FILE_DIR"] = "flask_session_cache"
+    # Redis session configuration
+    app.config["SESSION_TYPE"] = "redis"
     app.config["SESSION_PERMANENT"] = False
     app.config["SESSION_USE_SIGNER"] = True
+    app.config["SESSION_KEY_PREFIX"] = "smartstack:"
+    app.config["SESSION_REDIS"] = Redis(
+        host=Config.REDIS_HOST,
+        port=Config.REDIS_PORT
+    )
     Session(app)
 
     # Extensions
