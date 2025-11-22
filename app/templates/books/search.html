@@ -66,9 +66,8 @@
 
     {% if results %}
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-      {% for item in results %}
-      {% set book = search_cache[item.id] %}
-      {% set authors = book.authors_list if book.authors_list is defined else (book.authors if book.authors is iterable and book.authors.__class__.__name__ != 'str' else [book.authors]) %}
+      {% for book in results %}
+      {% set authors = book.authors %}
       {% set in_library = library_ids and book.google_id in library_ids %}
       {% set in_wishlist = wishlist_ids and book.google_id in wishlist_ids %}
       {% set confirm_library = '¿Eliminar este libro de tu biblioteca?' if in_library else ('¿Mover este libro de tu wishlist a tu biblioteca?' if in_wishlist else '') %}
@@ -159,10 +158,10 @@
       </a>
       {% endfor %}
     </div>
-        {% else %}
-        <p class="text-center text-gray-600 dark:text-gray-300 mt-10">
-          No se encontraron resultados en los idiomas seleccionados.
-        </p>
+    {% else %}
+    <p class="text-center text-gray-600 dark:text-gray-300 mt-10">
+      No se encontraron resultados en los idiomas seleccionados.
+    </p>
     {% endif %}
   </section>
 </div>

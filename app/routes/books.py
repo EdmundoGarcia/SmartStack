@@ -13,7 +13,7 @@ from flask import (
 import requests
 from flask_login import login_required, current_user
 from app.models import Book, Wishlist, UserLibrary, User, WishlistBook, LibraryBook
-from app.extensions import db
+from app.extensions import db, cache
 from app.utils.books import get_or_create_book, clean_description
 import math
 import hashlib
@@ -28,7 +28,6 @@ from app.utils.recommend_engine import (
     group_books_by_category,
     CATEGORY_GROUPS,
 )
-
 import numpy as np
 
 books_bp = Blueprint("books", __name__)
@@ -46,7 +45,6 @@ def search_books():
     import re
 
     def get_book_id_by_isbn(isbn):
-        """Fetch book ID directly from Google Books using ISBN."""
         api_key = current_app.config["GOOGLE_BOOKS_API_KEY"]
         params = {"q": f"isbn:{isbn}", "maxResults": 1, "key": api_key}
         try:
@@ -65,20 +63,12 @@ def search_books():
 
     RESULTS_PER_PAGE = 10
     MAX_RESULTS = 40
-    MAX_CACHE_SIZE = 200
     start_index = (page - 1) * RESULTS_PER_PAGE
 
-    # Clear cache if oversized
-    if len(session.get("search_cache", {})) > MAX_CACHE_SIZE:
-        session["search_cache"].clear()
-        session["query_cache"] = {}
-
-    # Require at least one filter to proceed
     if not query and not author_filter and not publisher_filter:
         flash("Ingresa una palabra clave, autor o editorial para buscar libros.", "warning")
         return render_template("books/search.html", results=[], page=page, total_pages=0)
 
-    # Redirect if query is a valid ISBN
     if re.fullmatch(r"97[89]\d{10}", query):
         book_id = get_book_id_by_isbn(query)
         if book_id:
@@ -87,7 +77,6 @@ def search_books():
             flash(f"No se encontró ningún libro con ISBN {query}.", "warning")
             return render_template("books/search.html", results=[], page=page, total_pages=0)
 
-    # Build query string for Google Books API
     q_parts = []
     if query:
         q_parts.append(query)
@@ -97,18 +86,14 @@ def search_books():
         q_parts.append(f"inpublisher:{publisher_filter}")
     q = " ".join(q_parts)
 
-    # Google Books only accepts one language in langRestrict
     lang_restrict = lang_filters[0] if len(lang_filters) == 1 else None
+    cache_key = f"books:{q}|{order_by}|{','.join(lang_filters)}|page:{page}"
 
-    # Build cache key
-    cache_key = f"{q}|{order_by}|{','.join(lang_filters)}|page:{page}"
-    query_cache = session.setdefault("query_cache", {})
-
-    if cache_key in query_cache:
+    cached_results = cache.get(cache_key)
+    if cached_results:
         current_app.logger.info(f"[CACHE HIT] Página {page} recuperada de caché para: {cache_key}")
-        filtered = query_cache[cache_key]
+        filtered = cached_results
     else:
-        # Prepare API request
         api_key = current_app.config["GOOGLE_BOOKS_API_KEY"]
         params = {
             "q": q,
@@ -120,7 +105,6 @@ def search_books():
         if lang_restrict:
             params["langRestrict"] = lang_restrict
 
-        # Fetch results from Google Books
         try:
             response = requests.get("https://www.googleapis.com/books/v1/volumes", params=params, timeout=5)
             raw_results = response.json().get("items", []) if response.status_code == 200 else []
@@ -128,29 +112,24 @@ def search_books():
             flash("Error de conexión con Google Books API.", "error")
             return render_template("books/search.html", results=[], page=page, total_pages=0)
 
-        # Filter and normalize results
         filtered = []
         for item in raw_results:
             volume = item.get("volumeInfo", {})
             if not volume.get("title") or not volume.get("authors"):
                 continue
-
             lang = volume.get("language", "")
             if lang not in lang_filters:
-                continue  # Manual language filter fallback
-
-            session.setdefault("search_cache", {})[item["id"]] = {
+                continue
+            filtered.append({
                 "google_id": item["id"],
                 "title": volume.get("title"),
                 "authors": volume.get("authors", []),
-                "authors_list": volume.get("authors", []),
                 "language": lang,
                 "thumbnail": volume.get("imageLinks", {}).get("thumbnail"),
                 "description": clean_description(volume.get("description", "")),
                 "publisher": volume.get("publisher", "").strip(),
                 "publishedDate": volume.get("publishedDate"),
                 "categories": volume.get("categories", []),
-                "categories_list": volume.get("categories", []),
                 "isbn": next(
                     (
                         i["identifier"].replace("-", "").strip()
@@ -159,17 +138,13 @@ def search_books():
                     ),
                     None,
                 ),
-            }
-            filtered.append(item)
+            })
+        cache.set(cache_key, filtered)
 
-        query_cache[cache_key] = filtered
-
-    # Pagination and result prep
     total_items = len(filtered)
     total_pages = min(4, math.ceil(MAX_RESULTS / RESULTS_PER_PAGE))
     results = filtered
 
-    # User library and wishlist IDs
     wishlist_ids = [book.google_id for book in getattr(current_user.wishlist, "books", [])]
     library_ids = [book.google_id for book in getattr(current_user.library, "books", [])]
 
@@ -187,9 +162,7 @@ def search_books():
         library_ids=library_ids,
         total_items=total_items,
         per_page=RESULTS_PER_PAGE,
-        search_cache=session.get("search_cache", {}),
     )
-
 
 
 @books_bp.route("/toggle_library", methods=["POST"])
@@ -534,11 +507,8 @@ def book_detail(google_id):
         return [part.strip() for cat in cats for part in cat.split("/") if part.strip()]
 
     book = Book.query.filter_by(google_id=google_id).first()
-
-    cached_data = session.get("search_cache", {}).get(google_id) or next(
-        (b for b in session.get("recommendation_cache", []) if b["id"] == google_id),
-        None,
-    )
+    cache_key = f"book:{google_id}"
+    cached_data = cache.get(cache_key)
 
     if book:
         source = "db"
@@ -546,14 +516,8 @@ def book_detail(google_id):
             "title": book.title,
             "authors": book.authors.split(",") if book.authors else [],
             "language": book.language,
-            "imageLinks": (
-                {"thumbnail": book.small_thumbnail} if book.small_thumbnail else {}
-            ),
-            "description": (
-                clean_description(book.description)
-                if book.description
-                else "Descripción no disponible"
-            ),
+            "imageLinks": {"thumbnail": book.small_thumbnail} if book.small_thumbnail else {},
+            "description": clean_description(book.description) if book.description else "Descripción no disponible",
             "publisher": book.publisher or "Editorial no disponible",
             "publishedDate": book.published_date or "Fecha no disponible",
             "categories": book.categories.split(",") if book.categories else [],
@@ -564,22 +528,13 @@ def book_detail(google_id):
 
     elif cached_data:
         source = "cache"
-        if is_cache_incomplete(cached_data):
-            current_app.logger.info(
-                f"[DEBUG] Caché incompleto para {google_id}, se mostrará vista parcial."
-            )
         raw_categories = cached_data.get("categories", [])
         info = {
             "title": cached_data.get("title", "Título no disponible"),
             "authors": cached_data.get("authors", []),
             "language": cached_data.get("language", "Idioma no disponible"),
-            "imageLinks": (
-                {"thumbnail": cached_data.get("thumbnail")}
-                if cached_data.get("thumbnail")
-                else {}
-            ),
-            "description": clean_description(cached_data.get("description", ""))
-            or "Descripción no disponible",
+            "imageLinks": {"thumbnail": cached_data.get("thumbnail")} if cached_data.get("thumbnail") else {},
+            "description": clean_description(cached_data.get("description", "")) or "Descripción no disponible",
             "publisher": cached_data.get("publisher", "Editorial no disponible"),
             "publishedDate": cached_data.get("publishedDate", "Fecha no disponible"),
             "categories": raw_categories,
@@ -594,11 +549,7 @@ def book_detail(google_id):
             api_key = current_app.config["GOOGLE_BOOKS_API_KEY"]
             url = f"https://www.googleapis.com/books/v1/volumes/{google_id}"
             response = requests.get(url, params={"key": api_key}, timeout=5)
-            volume = (
-                response.json().get("volumeInfo", {})
-                if response.status_code == 200
-                else {}
-            )
+            volume = response.json().get("volumeInfo", {}) if response.status_code == 200 else {}
         except requests.RequestException:
             flash("No se pudo obtener los detalles del libro.", "error")
             return redirect(url_for("books.recommendations"))
@@ -609,13 +560,8 @@ def book_detail(google_id):
             "title": volume.get("title", "Título no disponible"),
             "authors": volume.get("authors", []),
             "language": volume.get("language", "Idioma no disponible"),
-            "imageLinks": (
-                {"thumbnail": volume.get("imageLinks", {}).get("thumbnail")}
-                if volume.get("imageLinks", {}).get("thumbnail")
-                else {}
-            ),
-            "description": clean_description(volume.get("description", ""))
-            or "Descripción no disponible",
+            "imageLinks": {"thumbnail": volume.get("imageLinks", {}).get("thumbnail")} if volume.get("imageLinks", {}).get("thumbnail") else {},
+            "description": clean_description(volume.get("description", "")) or "Descripción no disponible",
             "publisher": volume.get("publisher", "Editorial no disponible").strip(),
             "publishedDate": volume.get("publishedDate", "Fecha no disponible"),
             "categories": raw_categories,
@@ -631,6 +577,7 @@ def book_detail(google_id):
             "source": source,
         }
         book = None
+        cache.set(cache_key, info)
 
     wishlist_ids = [b.google_id for b in getattr(current_user.wishlist, "books", [])]
     library_ids = [b.google_id for b in getattr(current_user.library, "books", [])]
@@ -642,12 +589,9 @@ def book_detail(google_id):
     porrua_link = f"https://porrua.mx/catalogsearch/result/?q={isbn}" if isbn else None
     gonvill_link = (
         f"https://www.gonvill.com.mx/busqueda/listaLibros.php?tipoBus=full&palabrasBusqueda={isbn}"
-        if isbn
-        else None
+        if isbn else None
     )
-    buscalibre_link = (
-        f"https://www.buscalibre.com.mx/libros/search?q={isbn}" if isbn else None
-    )
+    buscalibre_link = f"https://www.buscalibre.com.mx/libros/search?q={isbn}" if isbn else None
 
     return render_template(
         "books/book_detail.html",
@@ -661,6 +605,7 @@ def book_detail(google_id):
         gonvill_link=gonvill_link,
         buscalibre_link=buscalibre_link,
     )
+
 
 
 @books_bp.route("/recommendations")
@@ -710,32 +655,23 @@ def fetch_recommendations():
         current_app.logger.info(f"[RECOMMEND] Perfil vacío para usuario {current_user.id}.")
         return {"error": "No se pudo construir el perfil"}
 
-    last_hash = session.get("last_profile_hash")
-    last_fetched = session.get("last_fetched")
-    cache = session.get("recommendation_cache", [])
-    rotation_index = session.get("rotation_index", 0)
+    cache_key = f"recommendations:{current_user.id}:{profile_hash}"
+    rotation_key = f"recommendations_rotation:{current_user.id}:{profile_hash}"
 
-    try:
-        age = datetime.utcnow() - datetime.fromisoformat(last_fetched)
-    except (ValueError, TypeError):
-        age = timedelta(hours=999)
+    cached_data = cache.get(cache_key)
+    rotation_index = cache.get(rotation_key) or 0
 
-    if last_hash == profile_hash and cache and age < timedelta(hours=48):
-        if rotation_index >= len(cache):
+    if cached_data:
+        if rotation_index >= len(cached_data):
             current_app.logger.info(f"[RECOMMEND] Caché agotada para perfil {profile_hash}. Regenerando.")
-            last_hash = None
+            cached_data = None
         else:
-            chunk = cache[rotation_index : rotation_index + 3]
-            session["rotation_index"] = (rotation_index + 3) % len(cache)
+            chunk = cached_data[rotation_index:rotation_index + 3]
+            cache.set(rotation_key, (rotation_index + 3) % len(cached_data))
             current_app.logger.info(f"[RECOMMEND] Usuario {current_user.id} recibió lote {rotation_index} desde caché.")
             return {"books": chunk}
 
-    shown_ids = set(session.get("shown_recommendations", []))
-    if last_hash != profile_hash:
-        shown_ids = set()
-        rotation_index = 0
-        session["shown_recommendations"] = []
-
+    shown_ids = set()
     api_key = current_app.config.get("GOOGLE_BOOKS_API_KEY")
     recommendations = fetch_google_books(
         profile_vector,
@@ -748,16 +684,15 @@ def fetch_recommendations():
     )
 
     if recommendations:
+        for r in recommendations:
+            if "similarity" in r:
+                r["similarity"] = float(r["similarity"])
         valid_scores = [r["similarity"] for r in recommendations if "similarity" in r]
         avg_score = np.mean(valid_scores) if valid_scores else 0
         current_app.logger.info(f"[RECOMMEND] {len(recommendations)} libros generados para perfil {profile_hash}. Similitud promedio: {avg_score:.3f}")
 
-        session["recommendation_cache"] = recommendations
-        session["shown_recommendations"] = list(shown_ids)
-        session["last_profile_hash"] = profile_hash
-        session["last_fetched"] = datetime.utcnow().isoformat()
-        session["rotation_index"] = 3
-
+        cache.set(cache_key, recommendations, timeout=172800)  # 48h
+        cache.set(rotation_key, 3)
         return {"books": recommendations[0:3]}
 
     current_app.logger.info(f"[RECOMMEND] Sin resultados útiles para perfil {profile_hash}.")
@@ -765,6 +700,8 @@ def fetch_recommendations():
         "books": [],
         "message": "No se encontraron recomendaciones relevantes en este momento. Intenta más tarde o agrega más libros a tu biblioteca."
     }
+
+
 
 @books_bp.route("/search/isbn-scan")
 @login_required
