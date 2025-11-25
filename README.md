@@ -1,13 +1,11 @@
-# SmartStack
-Proyecto Modular
-<br>
-Backend: Flask
-Google Books API
-Redis
-MySQL
-<br>
-Front end:
-HTML (Jinja templates)
-Tailwind
+# Smart Stack
 
+---
 
+## Tech Stack
+- Flask + Jinja2 + TailwindCSS
+- MySQL + SQLAlchemy
+- Redis (sessions + caching)
+- Docker & Docker Compose
+
+---
