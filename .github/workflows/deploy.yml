@@ -20,7 +20,6 @@ jobs:
           username: ${{ secrets.GCP_VM_USER }}
           key: ${{ secrets.GCP_VM_SSH_KEY }}
           script: |
-            # Trust GitHub's host key to avoid interactive prompt
             ssh-keyscan -H github.com >> ~/.ssh/known_hosts
 
             cd /home/${{ secrets.GCP_VM_USER }}
@@ -34,7 +33,9 @@ jobs:
               git reset --hard origin/main
             fi
 
-            # Build and restart Docker Compose stack
             cd SmartStack
             docker-compose down
             docker-compose up -d --build
+
+            # Optional: prune unused Docker artifacts to save space
+            docker system prune -af --volumes

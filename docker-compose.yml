@@ -24,7 +24,7 @@ services:
     restart: always
 
   mysql:
-    image: mysql:8
+    image: mysql:8.0
     container_name: smartstack_mysql
     env_file:
       - .env
